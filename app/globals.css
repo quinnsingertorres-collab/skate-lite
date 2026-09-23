@@ -16,7 +16,7 @@
 html, body { margin: 0; height: 100%; }
 body { background: var(--bg); color: var(--ink); font: 14px/1.4 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
 button { font: inherit; color: inherit; }
-.app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+.app { display: grid; grid-template-rows: auto 1fr; height: 100vh; height: 100dvh; }
 header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .logo { font-weight: 700; font-size: 22px; letter-spacing: -0.5px; }
 .logo span { color: var(--accent); font-size: 13px; font-weight: 600; margin-left: 6px; }
@@ -37,9 +37,11 @@ header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; back
 .list button { text-align: left; padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
 .list button.on { border-color: var(--accent); background: var(--accent-soft); }
 .list small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ladders { overflow: auto; padding: 16px; display: flex; gap: 16px; align-items: flex-start; }
+.ladders { overflow: auto; padding: 16px; display: flex; gap: 16px; align-items: stretch; min-height: 0; }
 .empty { color: var(--muted); margin: 40px auto; text-align: center; max-width: 360px; }
-.ladder { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 6px; flex: 0 0 auto; }
+.ladder { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 6px; flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; }
+.ladder-body { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.ladder-body svg { display: block; }
 .ladder-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px 6px; }
 .pill { background: var(--route); color: #1d1b22; border-radius: 999px; padding: 2px 14px; font-weight: 700; font-size: 16px; }
 .ladder-head button { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 2px 4px; }
@@ -62,11 +64,9 @@ svg text { fill: var(--ink); }
 .kv dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
 .kv dd { margin: 0; }
 .minimap { flex: 1; min-height: 260px; margin: 0 16px 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
-footer { padding: 6px 16px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--line); background: var(--panel); }
-footer a { color: var(--accent); }
 @media (max-width: 700px) {
   .body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .picker { border-right: 0; border-bottom: 1px solid var(--line); max-height: 40vh; }
+  .picker { border-right: 0; border-bottom: 1px solid var(--line); max-height: 30vh; }
   .search input { width: 140px; }
   header { flex-wrap: wrap; }
 }

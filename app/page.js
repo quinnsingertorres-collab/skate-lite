@@ -165,10 +165,6 @@ export default function Home() {
         </main>
       </div>
 
-      <footer>
-        Unofficial and not affiliated with the MBTA. Live data from MBTA public feeds; schedule data built {index ? new Date(index.built).toLocaleDateString() : "…"}.
-        Inspired by the MBTA&apos;s open-source <a href="https://github.com/mbta/skate">Skate</a>.
-      </footer>
 
       {selVehicle && <VehiclePanel vehicle={selVehicle} route={selRoute} now={now} onClose={() => setSelVehicleId(null)} />}
     </div>

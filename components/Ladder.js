@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ladderPosition, onTime } from "@/lib/ladder";
 
-const GAP = 42, TOP = 26, W = 290, L = 105, R = 185;
+const MIN_GAP = 30, TOP = 26, W = 290, L = 105, R = 185;
 
 function tri(x, y, up) {
   return up ? `M${x - 8},${y + 6} L${x},${y - 8} L${x + 8},${y + 6} Z` : `M${x - 8},${y - 6} L${x},${y + 8} L${x + 8},${y - 6} Z`;
@@ -11,6 +11,18 @@ function tri(x, y, up) {
 export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove }) {
   const [reversed, setReversed] = useState(false);
   const n = route.timepoints.length;
+  // Stretch the ladder to the height available, like Skate; scroll only if it would get too cramped
+  const body = useRef(null);
+  const [avail, setAvail] = useState(0);
+  useLayoutEffect(() => {
+    const el = body.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setAvail(el.getBoundingClientRect().height));
+    ro.observe(el);
+    setAvail(el.getBoundingClientRect().height);
+    return () => ro.disconnect();
+  }, []);
+  const GAP = Math.max(MIN_GAP, (avail - TOP * 2) / Math.max(1, n - 1));
   const H = TOP * 2 + Math.max(1, n - 1) * GAP;
   // Default: last timepoint on top, like Skate. Direction 0 rides the right rail upward.
   const yFor = (pos) => TOP + (reversed ? pos : n - 1 - pos) * GAP;
@@ -49,6 +61,7 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
         <span>↓ {leftDir?.dest || ""}</span>
         <span>{rightDir?.dest || ""} ↑</span>
       </div>
+      <div className="ladder-body" ref={body}>
       <svg width={W} height={H} role="img" aria-label={`${placed.length} buses on route ${route.name}`}>
         <line className="rail" x1={L} x2={L} y1={TOP - 8} y2={H - TOP + 8} />
         <line className="rail" x1={R} x2={R} y1={TOP - 8} y2={H - TOP + 8} />
@@ -72,6 +85,7 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
           );
         })}
       </svg>
+      </div>
       {unplaced.length > 0 && (
         <div className="unplaced">
           Off main pattern:{" "}
