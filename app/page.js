@@ -20,7 +20,7 @@ export default function Home() {
   const [index, setIndex] = useState(null);
   const [selected, setSelected] = useState([]);
   const [routeData, setRouteData] = useState({});
-  const [feed, setFeed] = useState({ vehicles: [], fetched: null, error: null });
+  const [feed, setFeed] = useState({ vehicles: [], fetched: null, error: null, sources: {} });
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
   const [selVehicleId, setSelVehicleId] = useState(null);
@@ -48,7 +48,7 @@ export default function Home() {
     try {
       const r = await fetch("/api/vehicles", { cache: "no-store" });
       const d = await r.json();
-      setFeed({ vehicles: d.vehicles || [], fetched: d.fetched, error: d.error || null });
+      setFeed({ vehicles: d.vehicles || [], fetched: d.fetched, error: d.error || null, sources: d.sources || {} });
     } catch (e) {
       setFeed((f) => ({ ...f, error: String(e) }));
     }
@@ -97,6 +97,13 @@ export default function Home() {
           <span className={`status-dot${stale ? " stale" : ""}`} />
           {feed.error ? "Live data unavailable" : `${feed.vehicles.length} buses live`}
         </span>
+        {feed.sources.swiftly === "ok" ? (
+          <span className="legend meta">
+            <i className="early" />Early <i className="ontime" />On time <i className="late" />Late
+          </span>
+        ) : feed.sources.swiftly && feed.sources.swiftly !== "off" ? (
+          <span className="meta" title="Check SWIFTLY_API_KEY / SWIFTLY_AGENCY">Swiftly: {feed.sources.swiftly}</span>
+        ) : null}
         <div className="search">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search bus number…" aria-label="Search bus number" />
           {matches.length > 0 && (

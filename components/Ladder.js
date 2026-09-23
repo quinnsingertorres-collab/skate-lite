@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import { ladderPosition } from "@/lib/ladder";
+import { ladderPosition, onTime } from "@/lib/ladder";
 
-const GAP = 42, TOP = 26, W = 240, L = 80, R = 160;
+const GAP = 42, TOP = 26, W = 290, L = 105, R = 185;
 
 function tri(x, y, up) {
   return up ? `M${x - 8},${y + 6} L${x},${y - 8} L${x + 8},${y + 6} Z` : `M${x - 8},${y - 6} L${x},${y + 8} L${x + 8},${y - 6} Z`;
@@ -30,7 +30,7 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
       if (stack > 0) { p.below = true; if (prev) prev.below = true; }
       prev = p;
       const out = side ? 1 : -1;
-      p.x = (side ? R : L) + out * Math.min(stack, 2) * 36;
+      p.x = (side ? R : L) + out * Math.min(stack, 3) * 31;
       p.labelDx = out * 12;
       lastY = p.y;
     }
@@ -61,7 +61,7 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
         {placed.map(({ v, x, y, right, labelDx, below }) => {
           const up = right;
           return (
-            <g key={v.id} className={`veh${v.id === selectedId ? " sel" : ""}`} onClick={() => onSelect(v)} role="button" aria-label={`Bus ${v.label}`}>
+            <g key={v.id} className={`veh ${onTime(v.adherence) || ""}${v.id === selectedId ? " sel" : ""}`} onClick={() => onSelect(v)} role="button" aria-label={`Bus ${v.label}`}>
               <path d={tri(x, y, up)} />
               {below ? (
                 <text x={x} y={y + 20} textAnchor="middle">{v.label}</text>

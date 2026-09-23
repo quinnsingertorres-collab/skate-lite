@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { OCCUPANCY, STATUS, stopName } from "@/lib/ladder";
+import { OCCUPANCY, STATUS, adherenceLabel, onTime, stopName } from "@/lib/ladder";
 
 function MiniMap({ route, vehicle }) {
   const el = useRef(null);
@@ -38,7 +38,8 @@ function MiniMap({ route, vehicle }) {
 
 export default function VehiclePanel({ vehicle, route, now, onClose }) {
   const dir = route?.dirs?.[String(vehicle.dir)];
-  const stop = stopName(route, vehicle.stop) || vehicle.stop || "—";
+  const stop = vehicle.nextStopName || stopName(route, vehicle.stop) || vehicle.stop || "—";
+  const adh = adherenceLabel(vehicle.adherence);
   const age = vehicle.ts ? Math.max(0, now - vehicle.ts) : null;
   return (
     <aside className="drawer" aria-label={`Bus ${vehicle.label}`}>
@@ -48,8 +49,9 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
           <div className="meta">{dir ? dir.name.toUpperCase() : ""}</div>
           <div style={{ fontWeight: 600, fontSize: 18 }}>
             {route ? `${route.name}` : vehicle.route ? `Route ${vehicle.route}` : "Not on a route"}
-            {dir ? ` · ${dir.dest}` : ""}
+            {vehicle.headsign ? ` · ${vehicle.headsign}` : dir ? ` · ${dir.dest}` : ""}
           </div>
+          {adh && <div className={`adh ${onTime(vehicle.adherence)}`}>{adh}</div>}
           {age != null && <div className="meta">updated {age}s ago</div>}
         </div>
         <button className="x" onClick={onClose} aria-label="Close">×</button>
@@ -59,7 +61,9 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
         <dt>{STATUS[vehicle.status] || "Stop"}</dt><dd>{stop}</dd>
         <dt>Crowding</dt><dd>{OCCUPANCY[vehicle.occupancy] || "Not available"}</dd>
         <dt>Trip</dt><dd>{vehicle.trip || "—"}{vehicle.revenue ? "" : " (non-revenue)"}</dd>
-        <dt>Operator</dt><dd className="meta">Not in public data</dd>
+        <dt>Run</dt><dd>{vehicle.run || <span className="meta">Not available</span>}</dd>
+        <dt>Block</dt><dd>{vehicle.block || <span className="meta">Not available</span>}</dd>
+        <dt>Sources</dt><dd className="meta">{(vehicle.sources || []).join(" + ")}</dd>
       </dl>
       <MiniMap route={route} vehicle={vehicle} />
     </aside>

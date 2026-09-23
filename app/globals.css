@@ -2,12 +2,14 @@
   --bg: #f6f5f8; --panel: #ffffff; --ink: #1d1b22; --muted: #6b6775; --line: #d9d6df;
   --rail: #c9c5d1; --accent: #5b2bc4; --accent-soft: #ece6fb; --bus: #6f6a78; --route: #fbc02d;
   --ghost: #b8b3c2; --danger: #c62828;
+  --early: #d32f2f; --ontime: #2e7d32; --late: #1565c0;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #15131a; --panel: #1f1c26; --ink: #ece9f2; --muted: #a39fae; --line: #34303d;
     --rail: #4a4555; --accent: #a88bf5; --accent-soft: #2d2540; --bus: #bdb8c8; --route: #e0a800;
     --ghost: #5a5566;
+    --early: #ef6b6b; --ontime: #5cc26a; --late: #6aa8f5;
   }
 }
 * { box-sizing: border-box; }
@@ -41,7 +43,7 @@ header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; back
 .ladder-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px 6px; }
 .pill { background: var(--route); color: #1d1b22; border-radius: 999px; padding: 2px 14px; font-weight: 700; font-size: 16px; }
 .ladder-head button { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 2px 4px; }
-.sub { font-size: 11px; color: var(--muted); padding: 0 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 240px; }
+.sub { font-size: 11px; color: var(--muted); padding: 0 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 290px; }
 .sub span:last-child { text-align: right; }
 .unplaced { font-size: 11px; color: var(--muted); padding: 4px 6px 0; max-width: 200px; }
 .unplaced button { border: 1px dashed var(--rail); background: none; border-radius: 3px; padding: 0 4px; margin: 2px; cursor: pointer; font-size: 11px; }
@@ -68,3 +70,13 @@ footer a { color: var(--accent); }
   .search input { width: 140px; }
   header { flex-wrap: wrap; }
 }
+
+.veh.early path { fill: var(--early); }
+.veh.ontime path { fill: var(--ontime); }
+.veh.late path { fill: var(--late); }
+.veh.sel path { stroke: var(--accent); stroke-width: 3; }
+.legend { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 6px; }
+.legend i.early { background: var(--early); } .legend i.ontime { background: var(--ontime); } .legend i.late { background: var(--late); }
+.adh { font-weight: 600; font-size: 13px; }
+.adh.early { color: var(--early); } .adh.ontime { color: var(--ontime); } .adh.late { color: var(--late); }
