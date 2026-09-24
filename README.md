@@ -6,11 +6,14 @@ An unofficial, Vercel-deployable take on the MBTA's [Skate](https://github.com/m
 
 ## Features
 
-- Route picker covering local, frequent, commuter and coverage bus routes (rail-replacement shuttles are excluded)
-- Route ladders with live buses placed between timepoints, just like Skate: direction 0 on the right rail heading up, direction 1 on the left heading down, with ⇅ Reverse
-- Bus panel with status, next stop, crowding, trip, and a map showing the route shape
-- Search by bus number
-- Selected routes are remembered and saved in the URL (`?r=28,23`), so links can be shared
+Styled after Skate's own UI (left nav, two-column route picker, yellow route pills, gray ladders with buses stacked outside the rails, properties panel), with a bottom nav on phones.
+
+- **Route Ladders:** pick routes, and see live buses placed between timepoints. Direction 0 heads up on the right, direction 1 heads down on the left, with ⇅ Reverse. Ladders stretch to the full window height.
+- **Search Map:** every live bus on a map, searchable by bus number, run, or route. Tap a bus to see its route.
+- **Properties panel:** direction, headsign, early/late status, run, block, trip, crowding, and next stop, with a map.
+- Selected routes are remembered and saved in the URL (`?r=28,23`, `&view=map`).
+
+This is original code written to resemble Skate. None of Skate's source, styles, or icons are copied; Skate itself is AGPL-3.0.
 
 ## Data sources
 
