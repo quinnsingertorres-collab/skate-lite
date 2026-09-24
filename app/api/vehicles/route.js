@@ -3,7 +3,13 @@
 // stays on the server (SWIFTLY_API_KEY); responses are cached 10s at the edge, so
 // Swiftly is called at most about once per 10s no matter how many people are viewing.
 const MBTA_FEED = process.env.VEHICLES_URL || "https://cdn.mbta.com/realtime/VehiclePositions_enhanced.json";
-const SWIFTLY_KEY = process.env.SWIFTLY_API_KEY;
+// Tolerate common paste mistakes: surrounding quotes/whitespace/newlines, or a copied "Authorization:"/"Bearer" prefix
+const SWIFTLY_KEY = (process.env.SWIFTLY_API_KEY || "")
+  .trim()
+  .replace(/^["']|["']$/g, "")
+  .replace(/^authorization:\s*/i, "")
+  .replace(/^bearer\s+/i, "")
+  .trim();
 const SWIFTLY_URL =
   process.env.SWIFTLY_VEHICLES_URL ||
   `https://api.goswift.ly/real-time/${process.env.SWIFTLY_AGENCY || "mbta"}/vehicles?unassigned=true&verbose=true`;
@@ -48,7 +54,19 @@ async function swiftlyVehicles() {
     headers: { Authorization: SWIFTLY_KEY, Accept: "application/json" },
     next: { revalidate: 10 },
   });
-  if (!res.ok) return { status: `error ${res.status}`, vehicles: [] };
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const b = await res.json();
+      detail = b?.errorMessage || b?.message || "";
+    } catch {}
+    const hint =
+      res.status === 401 ? "check SWIFTLY_API_KEY (and that it is enabled for this environment)" :
+      res.status === 403 ? "key is not allowed for this agency; check SWIFTLY_AGENCY" :
+      res.status === 404 ? "agency not found; check SWIFTLY_AGENCY / SWIFTLY_VEHICLES_URL" :
+      res.status === 429 ? "rate limited by Swiftly" : "";
+    return { status: `error ${res.status}`, detail: [detail, hint].filter(Boolean).join(" – "), vehicles: [] };
+  }
   const body = await res.json();
   return { status: "ok", vehicles: body?.data?.vehicles || [] };
 }
@@ -56,7 +74,7 @@ async function swiftlyVehicles() {
 export async function GET() {
   const [mbta, swiftly] = await Promise.allSettled([mbtaVehicles(), swiftlyVehicles()]);
   const base = mbta.status === "fulfilled" ? mbta.value : [];
-  const sw = swiftly.status === "fulfilled" ? swiftly.value : { status: `error ${swiftly.reason}`, vehicles: [] };
+  const sw = swiftly.status === "fulfilled" ? swiftly.value : { status: "error", detail: String(swiftly.reason), vehicles: [] };
 
   const byId = new Map(base.map((v) => [v.id, v]));
   for (const s of sw.vehicles) {
@@ -105,7 +123,12 @@ export async function GET() {
   return Response.json(
     {
       fetched: Math.floor(Date.now() / 1000),
-      sources: { mbta: mbta.status === "fulfilled" ? "ok" : "error", swiftly: sw.status },
+      sources: {
+        mbta: mbta.status === "fulfilled" ? "ok" : "error",
+        swiftly: sw.status,
+        ...(sw.detail ? { swiftlyDetail: sw.detail } : {}),
+        ...(SWIFTLY_KEY ? { swiftlyAgency: process.env.SWIFTLY_VEHICLES_URL ? "custom URL" : process.env.SWIFTLY_AGENCY || "mbta" } : {}),
+      },
       error,
       vehicles,
     },

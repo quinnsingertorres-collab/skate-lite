@@ -6,13 +6,21 @@ const VIEWS = [
   { id: "map", label: "Search Map", Icon: MapIcon },
 ];
 
-export function TopNav({ liveText, stale, onRefresh }) {
+export function TopNav({ liveText, stale, onRefresh, swiftly }) {
   return (
     <header className="top-nav">
       <div className="logo" aria-label="sk8 lite">
         sk8<span>lite</span>
       </div>
       <div className="top-nav-right">
+        {swiftly?.status && swiftly.status !== "off" && (
+          <span
+            className={`swiftly-status${swiftly.status === "ok" ? " is-ok" : " is-error"}`}
+            title={swiftly.status === "ok" ? "Swiftly connected" : `Swiftly ${swiftly.status}${swiftly.detail ? `: ${swiftly.detail}` : ""}`}
+          >
+            Swiftly {swiftly.status === "ok" ? "✓" : String(swiftly.status).replace("error ", "")}
+          </span>
+        )}
         <span className={`live${stale ? " is-stale" : ""}`}>
           <i />
           {liveText}

@@ -105,7 +105,7 @@ export default function Home() {
 
   return (
     <div className="app">
-      <TopNav liveText={liveText} stale={stale} onRefresh={poll} />
+      <TopNav liveText={liveText} stale={stale} onRefresh={poll} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
       <LeftNav view={view} onView={setView} collapsed={navCollapsed} onCollapse={collapseNav} />
 
       <main className="content">

@@ -47,6 +47,9 @@ ul { list-style: none; margin: 0; padding: 0; }
 .live { display: inline-flex; align-items: center; gap: 6px; color: var(--gray-600); font-size: 13px; }
 .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ontime); }
 .live.is-stale i { background: var(--early); }
+.swiftly-status { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; cursor: help; }
+.swiftly-status.is-ok { color: #4d7300; background: #e8f6cd; }
+.swiftly-status.is-error { color: #a33a18; background: #fbe3da; }
 .icon-btn { color: var(--gray-600); display: inline-flex; padding: 6px; border-radius: 6px; }
 .icon-btn:hover { color: var(--gray-500); background: var(--gray-200); }
 
