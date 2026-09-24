@@ -45,7 +45,7 @@ Environment variables (see `.env.example`):
 - `SWIFTLY_AGENCY` (default `mbta`) or `SWIFTLY_VEHICLES_URL` sets which Swiftly feed to read.
 - `GTFS_URL` and `VEHICLES_URL` point at other MBTA feeds.
 
-If the header shows `Swiftly: error 401` or `error 404`, the key or agency is wrong.
+If the header shows `Swiftly 401`, `403` or `404`, open `/api/swiftly-check` on your site. It tries several Swiftly requests with your key and lists each one's status code and Swiftly's message (the key itself is never shown). On a 403 the app automatically retries without Skate's `unassigned`/`verbose` options.
 
 ## Run locally
 
