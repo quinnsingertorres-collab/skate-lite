@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { stopName } from "@/lib/ladder";
+import { adherenceMinutes, stopName } from "@/lib/ladder";
 import { VehicleBadge } from "@/components/VehicleGlyph";
 
 const LATE_SECS = 360; // Skate's "late" threshold
@@ -50,7 +50,7 @@ export default function LateView({ vehicles, routes, routeData, selectedRoutes, 
                 const dest = v.headsign || r?.dirs?.[String(v.dir)]?.dest || routes.find((x) => x.id === v.route)?.dirs?.[String(v.dir)]?.dest || "—";
                 return (
                   <tr key={v.id} className={v.id === selectedId ? "is-selected" : ""} onClick={() => onSelect(v)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onSelect(v)}>
-                    <td className="late-mins">{Math.round(v.adherence / 60)} min</td>
+                    <td className="late-mins">{adherenceMinutes(v.adherence)} mins</td>
                     <td><span className="route-pill">{nameOf(v.route)}</span></td>
                     <td className="late-veh"><VehicleBadge vehicle={v} /> </td>
                     <td className="hide-sm">{v.run || "—"}</td>
