@@ -134,6 +134,12 @@ export async function GET() {
         rest.adherenceSource = "schedule";
       } else if (rest.adherence != null) rest.adherenceSource = "swiftly";
       if (info.sched) rest.sched = info.sched;
+      if (info.pattern) {
+        rest.pattern = info.pattern;
+        const m = /-(.)-\d$/.exec(info.pattern);
+        rest.variant = m ? m[1] : "_";
+      }
+      if (!rest.headsign && info.headsign) rest.headsign = info.headsign;
     }
     return rest;
   });

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ladderPosition } from "@/lib/ladder";
+import { ladderPosition, variantLabel } from "@/lib/ladder";
 import { VehicleGlyph, statusClass } from "@/components/VehicleGlyph";
 import { CloseIcon, KebabIcon, ReverseIcon, RidersIcon } from "@/components/Icons";
 
@@ -160,7 +160,7 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
               aria-label={`Bus ${v.label}`}
             >
               <rect className="hit" x={-18} y={up ? -16 : -30} width={36} height={46} />
-              <VehicleGlyph up={up} label={showRiders ? riderLabel(v) : v.label} className={statusClass(v)} />
+              <VehicleGlyph up={up} label={showRiders ? riderLabel(v) : v.label} variant={variantLabel(v)} className={statusClass(v)} />
             </g>
           ))}
         </svg>

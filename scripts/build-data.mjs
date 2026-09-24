@@ -67,17 +67,29 @@ async function main() {
     if (r) r.dirs[d.direction_id] = { name: d.direction, dest: d.direction_destination };
   }
 
-  // Main pattern per route+direction: typicality 1, lowest sort order
+  // All route patterns (main, school/early-morning variants, "via" deviations), like Skate.
+  // Main pattern per route+direction: typicality 1, lowest sort order.
+  const MAX_TYP = 4; // 1 typical … 3 deviations (e.g. school trips), 4 diversions
+  const patternsByRoute = new Map();
   const best = new Map();
   for (const p of rows(txt("route_patterns.txt"))) {
     if (!routeById.has(p.route_id)) continue;
-    const key = `${p.route_id}|${p.direction_id}`;
     const typ = Number(p.route_pattern_typicality) || 9;
+    if (typ > MAX_TYP) continue;
     const sort = Number(p.route_pattern_sort_order) || 0;
+    const m = /-(.)-(\d)$/.exec(p.route_pattern_id);
+    const pat = {
+      id: p.route_pattern_id, dir: p.direction_id, typ, sort, trip: p.representative_trip_id,
+      variant: m ? m[1] : "_", name: p.route_pattern_name, desc: p.route_pattern_time_desc || "",
+    };
+    if (!patternsByRoute.has(p.route_id)) patternsByRoute.set(p.route_id, []);
+    patternsByRoute.get(p.route_id).push(pat);
+    const key = `${p.route_id}|${p.direction_id}`;
     const cur = best.get(key);
-    if (!cur || typ < cur.typ || (typ === cur.typ && sort < cur.sort)) best.set(key, { typ, sort, trip: p.representative_trip_id, pattern: p.route_pattern_id });
+    if (!cur || typ < cur.typ || (typ === cur.typ && sort < cur.sort)) best.set(key, pat);
   }
-  const repTrips = new Map([...best].map(([k, v]) => [v.trip, k]));
+  const repTrips = new Map();
+  for (const list of patternsByRoute.values()) for (const p of list) repTrips.set(p.trip, p.id);
 
   // Services running in the next SCHEDULE_DAYS days (for the adherence index)
   const DAYS = Number(process.env.SCHEDULE_DAYS || 45);
@@ -96,10 +108,10 @@ async function main() {
   for (const c of rows(txt("calendar_dates.txt"))) if (c.exception_type === "1" && windowSet.has(c.date)) activeServices.add(c.service_id);
 
   const shapeByTrip = new Map();
-  const schedTrips = new Map(); // trip_id -> route_id, for bus trips in the window
+  const schedTrips = new Map(); // trip_id -> { pattern, headsign }, for bus trips in the window
   for (const t of rows(txt("trips.txt"))) {
     if (repTrips.has(t.trip_id)) shapeByTrip.set(t.trip_id, t.shape_id);
-    if (routeById.has(t.route_id) && activeServices.has(t.service_id)) schedTrips.set(t.trip_id, t.route_id);
+    if (routeById.has(t.route_id) && activeServices.has(t.service_id)) schedTrips.set(t.trip_id, { pattern: t.route_pattern_id, headsign: t.trip_headsign });
   }
 
   // Stop times for representative trips only (stop_times.txt is ~150MB, so scan lines cheaply)
@@ -148,41 +160,54 @@ async function main() {
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUT, "r"), { recursive: true });
 
+  // Merge ordered lists (each in direction-0 order) into one ladder order, keeping every list's order.
+  const mergeOrder = (lists) => {
+    const out = [];
+    for (const list of lists) {
+      for (let i = 0; i < list.length; i++) {
+        const x = list[i];
+        if (out.includes(x)) continue;
+        const prev = list.slice(0, i).reverse().find((t) => out.includes(t));
+        if (prev != null) { out.splice(out.indexOf(prev) + 1, 0, x); continue; }
+        const next = list.slice(i + 1).find((t) => out.includes(t));
+        if (next != null) out.splice(out.indexOf(next), 0, x);
+        else out.push(x);
+      }
+    }
+    return out;
+  };
+
   const index = [];
   for (const r of routes) {
-    const dirs = {};
-    for (const dir of ["0", "1"]) {
-      const b = best.get(`${r.id}|${dir}`);
-      const list = b && stopsByTrip.get(b.trip);
-      if (!list) continue;
-      list.sort((a, c) => a.seq - c.seq);
-      const shape = (shapes.get(shapeByTrip.get(b.trip)) || []).sort((a, c) => a[0] - c[0]);
-      const step = Math.max(1, Math.floor(shape.length / 400));
-      dirs[dir] = {
-        pattern: b.pattern,
+    const pats = (patternsByRoute.get(r.id) || []).filter((p) => stopsByTrip.has(p.trip));
+    if (!pats.length) continue;
+    pats.sort((a, b) => a.typ - b.typ || a.sort - b.sort);
+    const patterns = {};
+    for (const p of pats) {
+      const list = stopsByTrip.get(p.trip).sort((a, c) => a.seq - c.seq);
+      const shape = (shapes.get(shapeByTrip.get(p.trip)) || []).sort((a, c) => a[0] - c[0]);
+      const maxPts = p.typ === 1 ? 400 : 250;
+      const step = Math.max(1, Math.floor(shape.length / maxPts));
+      patterns[p.id] = {
+        dir: Number(p.dir), variant: p.variant, name: p.name, desc: p.desc, typ: p.typ,
         stops: list.map((x) => {
           const s = stops.get(x.stop) || {};
           return { id: x.stop, name: s.name || x.stop, lat: s.lat, lon: s.lon, tp: x.cp || undefined };
         }),
-        shape: shape.filter((_, i) => i % step === 0 || i === shape.length - 1).map((p) => [p[1], p[2]]),
+        shape: shape.filter((_, i) => i % step === 0 || i === shape.length - 1).map((q) => [q[1], q[2]]),
       };
     }
-    if (!dirs["0"] && !dirs["1"]) continue;
+    const main = {};
+    for (const d of ["0", "1"]) { const b = best.get(`${r.id}|${d}`); if (b && patterns[b.id]) main[d] = b.id; }
 
-    // Ladder timepoints: direction 0 order, then any direction-1-only timepoints slotted in
-    const tpOrder = (d) => (dirs[d]?.stops || []).map((s) => s.tp).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
-    const t0 = tpOrder("0");
-    const t1 = tpOrder("1").reverse();
-    const ladder = t0.length ? [...t0] : [...t1];
-    if (t0.length) {
-      for (let i = 0; i < t1.length; i++) {
-        if (ladder.includes(t1[i])) continue;
-        const prev = t1.slice(0, i).reverse().find((t) => ladder.includes(t));
-        ladder.splice(prev ? ladder.indexOf(prev) + 1 : 0, 0, t1[i]);
-      }
-    }
+    // Ladder timepoints: every pattern's timepoints merged (main patterns first), like Skate
+    const tpList = (p) => {
+      const ids = patterns[p.id].stops.map((s) => s.tp).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+      return p.dir === "0" ? ids : ids.reverse();
+    };
+    const ladder = mergeOrder(pats.filter((p) => p.typ <= 3).map(tpList));
     const timepoints = ladder.map((id) => ({ id, name: cpNames.get(id) || id }));
-    fs.writeFileSync(path.join(OUT, "r", `${r.id}.json`), JSON.stringify({ id: r.id, name: r.name, long: r.long, dirs: r.dirs, timepoints, patterns: dirs }));
+    fs.writeFileSync(path.join(OUT, "r", `${r.id}.json`), JSON.stringify({ id: r.id, name: r.name, long: r.long, dirs: r.dirs, timepoints, main, patterns }));
     index.push({ id: r.id, name: r.name, long: r.long, kind: r.kind, sort: r.sort, dirs: r.dirs });
   }
   index.sort((a, b) => a.sort - b.sort);
@@ -192,15 +217,18 @@ async function main() {
   // Server-side schedule index for adherence: keep timepoints plus each trip's first and last stop.
   const cpIds = [], cpIdx = new Map();
   const cpi = (c) => { if (!c) return -1; if (!cpIdx.has(c)) { cpIdx.set(c, cpIds.length); cpIds.push(c); } return cpIdx.get(c); };
+  const strIds = [], strIdx = new Map();
+  const si = (x) => { if (!x) return -1; if (!strIdx.has(x)) { strIdx.set(x, strIds.length); strIds.push(x); } return strIdx.get(x); };
   const trips = {};
   for (const [tripId, list] of sched) {
     list.sort((a, b) => a[0] - b[0]);
     const keep = list.filter((x, i) => x[2] || i === 0 || i === list.length - 1);
-    trips[tripId] = [keep.map((x) => x[0]), keep.map((x) => x[1]), keep.map((x) => cpi(x[2]))];
+    const info = schedTrips.get(tripId) || {};
+    trips[tripId] = [keep.map((x) => x[0]), keep.map((x) => x[1]), keep.map((x) => cpi(x[2])), si(info.pattern), si(info.headsign)];
   }
   const GEN = path.join(process.cwd(), "data-gen");
   fs.mkdirSync(GEN, { recursive: true });
-  fs.writeFileSync(path.join(GEN, "schedule.json"), JSON.stringify({ built: feedVersion, cps: cpIds, trips }));
+  fs.writeFileSync(path.join(GEN, "schedule.json"), JSON.stringify({ built: feedVersion, cps: cpIds, strs: strIds, trips }));
   console.log(`[data] wrote schedule index for ${sched.size} bus trips (${DAYS} days)`);
   console.log(`[data] wrote ${index.length} routes to public/data`);
 }

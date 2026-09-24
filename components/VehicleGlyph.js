@@ -14,7 +14,7 @@ export function statusClass(v) {
   return onTime(v.adherence) || "";
 }
 
-export function VehicleGlyph({ up = true, label, size = "medium", className = "", withLabel = true }) {
+export function VehicleGlyph({ up = true, label, variant = "", size = "medium", className = "", withLabel = true }) {
   const { s, pillH, font } = SIZES[size];
   const h = 20 * s; // centre → point / base
   const w = 21 * s;
@@ -26,6 +26,11 @@ export function VehicleGlyph({ up = true, label, size = "medium", className = ""
     <g className={`vg ${className}`}>
       <polygon className="vg-halo" points={pts} />
       <polygon className="vg-tri" points={pts} />
+      {variant && (
+        <text className="vg-variant" x="0" y={(up ? 1 : -1) * h * 0.38} textAnchor="middle" dominantBaseline="central" fontSize={size === "large" ? 15 : size === "small" ? 6 : 8.5}>
+          {variant}
+        </text>
+      )}
       {withLabel && text && (
         <>
           <rect className="vg-pill" x={-pillW / 2} y={pillY} width={pillW} height={pillH} rx={pillH / 2} />
@@ -43,7 +48,7 @@ export function VehicleBadge({ vehicle, up = true, size = "small" }) {
   const box = size === "large" ? { w: 80, h: 70, cy: 26 } : { w: 40, h: 40, cy: 14 };
   return (
     <svg width={box.w} height={box.h} viewBox={`${-box.w / 2} ${-box.cy} ${box.w} ${box.h}`} aria-hidden="true">
-      <VehicleGlyph up={up} label={vehicle.label} size={size} className={statusClass(vehicle)} />
+      <VehicleGlyph up={up} label={vehicle.label} variant={vehicle.variant && vehicle.variant !== "_" ? vehicle.variant : ""} size={size} className={statusClass(vehicle)} />
     </svg>
   );
 }

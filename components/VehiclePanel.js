@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { OCCUPANCY, STATUS, adherenceLabel, onTime, stopName } from "@/lib/ladder";
+import { OCCUPANCY, STATUS, adherenceLabel, onTime, patternFor, stopName, variantLabel } from "@/lib/ladder";
+import { SHAPE_STYLE, TILE_OPTS, TILE_URL, stopMarkerOpts, vehicleMarkerHtml } from "@/lib/mapStyle";
 import { VehicleBadge } from "@/components/VehicleGlyph";
 import { CloseIcon } from "@/components/Icons";
 
@@ -15,20 +16,24 @@ function MiniMap({ route, vehicle }) {
       if (cancelled || !el.current) return;
       if (!map.current) {
         map.current = L.map(el.current, { zoomControl: true, attributionControl: true });
-        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(map.current);
+        L.tileLayer(TILE_URL, TILE_OPTS).addTo(map.current);
       }
       layer.current?.remove();
       layer.current = L.layerGroup().addTo(map.current);
-      for (const p of Object.values(route?.patterns || {})) {
-        if (p.shape?.length) L.polyline(p.shape, { color: "#7c47ae", weight: 4, opacity: 0.55 }).addTo(layer.current);
+      const pat = patternFor(route, vehicle);
+      if (pat?.shape?.length) L.polyline(pat.shape, SHAPE_STYLE).addTo(layer.current);
+      for (const st of pat?.stops || []) {
+        if (st.lat != null) L.circleMarker([st.lat, st.lon], stopMarkerOpts()).bindTooltip(st.name, { direction: "top", offset: [0, -6], className: "map-tip" }).addTo(layer.current);
       }
-      L.circleMarker([vehicle.lat, vehicle.lon], { radius: 9, color: "#fff", weight: 3, fillColor: "#7c47ae", fillOpacity: 1 })
-        .bindTooltip(String(vehicle.label), { permanent: true, direction: "top", offset: [0, -8] })
-        .addTo(layer.current);
+      L.marker([vehicle.lat, vehicle.lon], {
+        icon: L.divIcon({ className: "", html: vehicleMarkerHtml(vehicle, { primary: true }), iconSize: [26, 26], iconAnchor: [13, 13] }),
+        keyboard: false,
+        zIndexOffset: 1000,
+      }).addTo(layer.current);
       map.current.setView([vehicle.lat, vehicle.lon], 15);
     });
     return () => { cancelled = true; };
-  }, [route, vehicle.lat, vehicle.lon, vehicle.label]);
+  }, [route, vehicle.lat, vehicle.lon, vehicle.label, vehicle.bearing, vehicle.adherence, vehicle.pattern]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => { map.current?.remove(); map.current = null; }, []);
   return <div ref={el} className="pp-map" />;
@@ -41,6 +46,7 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
   const adh = adherenceLabel(vehicle.adherence);
   const status = onTime(vehicle.adherence);
   const headsign = vehicle.headsign || dir?.dest || (vehicle.route ? "" : "Not on a route");
+  const pattern = patternFor(route, vehicle);
 
   return (
     <aside className="pp" aria-label={`Vehicle ${vehicle.label}`}>
@@ -51,9 +57,16 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
         <div className="pp-summary">
           {dir && <div className="pp-direction">{dir.name}</div>}
           <div className="pp-route">
-            {route && <span className="route-pill">{route.name}</span>}
+            {(route || vehicle.route) && (
+              <span className="pp-route-variant">{`${route?.name || vehicle.route}_${variantLabel(vehicle)}`}</span>
+            )}
             <span>{headsign}</span>
           </div>
+          {pattern && pattern.typ > 1 && (
+            <div className="pp-pattern" title={pattern.name}>
+              {pattern.desc || "Route variation"} · {pattern.name}
+            </div>
+          )}
           <div className="pp-adherence">
             {adh ? (
               <>

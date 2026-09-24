@@ -13,18 +13,70 @@ const NAV_KEY = "skate-lite:nav-collapsed";
 const POLL_MS = 10000;
 const VIEWS = ["ladders", "late", "map"];
 
-function TabBar({ tabs, current, isDirty, onSelect, onClose, onAdd, onSave }) {
+function NameInput({ initial, placeholder, onDone, onCancel, label }) {
+  const [val, setVal] = useState(initial || "");
+  return (
+    <input
+      className="tab-name-input"
+      autoFocus
+      value={val}
+      placeholder={placeholder}
+      aria-label={label}
+      maxLength={60}
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => setVal(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onDone(val);
+        if (e.key === "Escape") onCancel();
+      }}
+      onBlur={() => onDone(val)}
+    />
+  );
+}
+
+function TabBar({ tabs, current, isDirty, onSelect, onClose, onAdd, onSave, onRename }) {
+  // editing: { id, mode: "save" | "rename" }
+  const [editing, setEditing] = useState(null);
+  const finish = (t, mode) => (name) => {
+    setEditing(null);
+    if (mode === "save") onSave(name);
+    else if (name.trim()) onRename(t.id, name);
+  };
   return (
     <div className="tab-bar" role="tablist" aria-label="Route ladder tabs">
       {tabs.map((t) => {
         const active = t.id === current?.id;
+        const isEditing = editing?.id === t.id;
         return (
-          <div key={t.id} className={`tab${active ? " tab--current" : ""}`}>
-            <button role="tab" aria-selected={active} className="tab-title" onClick={() => onSelect(t.id)} title={t.title}>
-              {t.title}{active && isDirty ? " *" : ""}
-            </button>
-            {active && (
-              <button className="tab-icon" onClick={onSave} disabled={!t.routes.length} aria-label="Save as preset" title={t.presetId ? "Update preset" : "Save as preset"}>
+          <div key={t.id} className={`tab${active ? " tab--current" : ""}${isEditing ? " tab--editing" : ""}`}>
+            {isEditing ? (
+              <NameInput
+                initial={editing.mode === "save" && t.title === "Untitled" ? t.routes.join(", ") : t.title}
+                placeholder="Preset name"
+                label={editing.mode === "save" ? "Name this preset" : "Rename tab"}
+                onDone={finish(t, editing.mode)}
+                onCancel={() => setEditing(null)}
+              />
+            ) : (
+              <button
+                role="tab"
+                aria-selected={active}
+                className="tab-title"
+                onClick={() => onSelect(t.id)}
+                onDoubleClick={() => setEditing({ id: t.id, mode: "rename" })}
+                title={`${t.title} (double-click to rename)`}
+              >
+                {t.title}{active && isDirty ? " *" : ""}
+              </button>
+            )}
+            {active && !isEditing && (
+              <button
+                className="tab-icon"
+                onClick={() => (t.presetId ? onSave() : setEditing({ id: t.id, mode: "save" }))}
+                disabled={!t.routes.length}
+                aria-label={t.presetId ? "Update preset" : "Save as preset"}
+                title={t.presetId ? "Update preset" : "Save as preset"}
+              >
                 <SaveIcon size={13} />
               </button>
             )}
@@ -157,6 +209,7 @@ export default function Home() {
               presets={t.presets}
               onOpenPreset={t.openPreset}
               onDeletePreset={t.deletePreset}
+              onRenamePreset={t.renamePreset}
             />
             <div className="ladder-main">
               <TabBar
@@ -167,6 +220,7 @@ export default function Home() {
                 onClose={t.closeTab}
                 onAdd={t.addTab}
                 onSave={t.saveCurrentAsPreset}
+                onRename={t.renameTab}
               />
               <div className="route-ladders">
                 {selected.length === 0 && (

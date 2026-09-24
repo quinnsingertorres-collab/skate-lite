@@ -9,7 +9,8 @@ An unofficial, Vercel-deployable take on the MBTA's [Skate](https://github.com/m
 Styled after Skate's own UI, with a bottom nav on phones.
 
 - **Route Ladders:** live buses placed between timepoints and colored by schedule adherence (red early, green on time, blue late), with schedule lines showing where each bus should be. Each route has a ⋮ menu, Reverse, and Show riders (crowding %).
-- **Tabs and presets:** a tab bar (＋ for new tabs, save icon to keep a set of routes as a preset) and a Presets tab in the route picker. Stored in your browser.
+- **Tabs and presets:** a tab bar (＋ for new tabs, save icon to name and save a set of routes as a preset, double-click a tab to rename) and a Presets tab in the route picker (open, rename, delete). Stored in your browser.
+- **Route variations:** like Skate, ladders merge the timepoints of every route pattern (e.g. school trips to Medford High on the 94/95/101/134), the pattern's variant shows inside each bus triangle, and the panel shows it as `101_2` with the pattern description ("School days only").
 - **Late View:** buses more than 6 minutes late, for your routes or all routes.
 - **Search Map:** every live bus on a map, searchable by bus number, run, or route.
 - **Properties panel:** direction, headsign, adherence, run, block, trip, crowding, next stop, and a map.
@@ -23,7 +24,7 @@ This is original code written to resemble Skate. None of Skate's source, styles,
 |---|---|---|
 | Routes, timepoints, stop order, shapes | `https://cdn.mbta.com/MBTA_GTFS.zip` | At build time (`scripts/build-data.mjs` → `public/data/`) |
 | Live bus positions | `https://cdn.mbta.com/realtime/VehiclePositions_enhanced.json` | `/api/vehicles`, cached 10s at the edge, polled every 10s |
-| Map tiles | OpenStreetMap | Browser |
+| Map tiles | OpenStreetMap (muted with a CSS filter to resemble Skate's basemap) | Browser |
 
 | Early/late, headsign, run, block (optional) | Swiftly real-time vehicles API, if `SWIFTLY_API_KEY` is set | Same `/api/vehicles` call, merged by vehicle ID |
 

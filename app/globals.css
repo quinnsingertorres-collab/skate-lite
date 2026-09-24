@@ -195,6 +195,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .vg-tri { fill: var(--c); stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; }
 .vg-pill { fill: var(--bg-base); }
 .vg-label { fill: var(--font-dark); font-weight: 500; }
+.vg-variant { fill: var(--white); font-weight: 700; pointer-events: none; }
 
 /* Legend */
 .legend { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray-600); }
@@ -223,13 +224,23 @@ ul { list-style: none; margin: 0; padding: 0; }
 .result-title .route-pill { min-width: 36px; height: 20px; font-size: 13px; }
 .result-sub { font-size: 12px; color: var(--gray-500); }
 .search-map-canvas { height: 100%; min-height: 0; background: var(--gray-200); }
-.map-veh { position: relative; width: 22px; height: 22px; }
-.map-veh svg { display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
-.map-veh span {
-  position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font: 600 9px/11px Inter, sans-serif; color: var(--font-dark);
-  background: var(--bg-base); border-radius: 6px; padding: 0 4px; white-space: nowrap; box-shadow: 0 0 0 1px rgba(0,0,0,.08);
+/* Map vehicles (Skate-style arrows with number pills) */
+.mv { position: relative; width: 26px; height: 26px; }
+.mv-arrow { display: block; overflow: visible; }
+.mv-arrow path { stroke: var(--bg-base); stroke-width: 2; stroke-linejoin: round; }
+.mv.is-selected .mv-arrow path { stroke: var(--eggplant-600); stroke-width: 1.5; filter: drop-shadow(1px 1px 4px var(--eggplant-400)); }
+.mv-label {
+  position: absolute; top: 22px; left: 50%; transform: translateX(-50%); min-width: 30px; height: 12px; padding: 0 5px;
+  font: 500 9px/12px Inter, sans-serif; color: var(--font-dark); text-align: center; background: var(--bg-base); border-radius: 6px; white-space: nowrap;
 }
-.map-veh.is-selected span { background: var(--teal-medium); }
+.mv-label b { font-weight: 700; color: var(--gray-600); }
+.mv.is-primary .mv-label { top: 25px; min-width: 40px; height: 16px; font-size: 12px; line-height: 16px; border-radius: 8px; }
+.mv.is-selected .mv-label { background: #d0b1f2; }
+.leaflet-tooltip.map-tip { background: #333; color: #fff; border-color: #333; font: 500 12px/1.4 Inter, sans-serif; box-shadow: none; }
+.leaflet-tooltip-top.map-tip::before { border-top-color: #333; }
+.leaflet-container { font-family: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif; background: #f2f2ef; }
+/* Muted OpenStreetMap tiles, close to Skate's basemap */
+.skate-tiles { filter: saturate(0.3) brightness(1.06) contrast(0.88); }
 
 /* ---------- Properties panel ---------- */
 .pp {
@@ -240,7 +251,9 @@ ul { list-style: none; margin: 0; padding: 0; }
 .pp-icon { flex: 0 0 auto; }
 .pp-summary { flex: 1; min-width: 0; padding-top: 2px; }
 .pp-direction { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--gray-600); letter-spacing: .3px; }
-.pp-route { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 600; margin: 2px 0 6px; flex-wrap: wrap; }
+.pp-route { display: flex; align-items: baseline; gap: 8px; font-size: 20px; font-weight: 600; margin: 2px 0 4px; flex-wrap: wrap; }
+.pp-route-variant { text-decoration: underline; text-underline-offset: 3px; }
+.pp-pattern { font-size: 12px; color: var(--gray-600); margin-bottom: 6px; }
 .pp-adherence { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
 .pp-adherence .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--plain); }
 .pp-adherence .dot.early { background: var(--early); } .pp-adherence .dot.ontime { background: var(--ontime); } .pp-adherence .dot.late { background: var(--late); }
@@ -302,6 +315,11 @@ ul { list-style: none; margin: 0; padding: 0; }
 .preset-open b { font-weight: 600; font-size: 14px; }
 .preset-open span { font-size: 12px; color: var(--gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .preset-open:hover { background: var(--gray-100); }
+.tab--editing { flex-basis: 12rem; }
+.tab-name-input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 4px 6px; border: 1px solid var(--eggplant-500); border-radius: 4px; outline: 0; background: var(--white); color: var(--font-dark); }
+.preset-name-input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border: 0; outline: 2px solid var(--eggplant-500); border-radius: 4px; }
+.preset-edit { width: 36px; display: inline-flex; align-items: center; justify-content: center; color: var(--gray-500); border-left: 1px solid var(--gray-200); }
+.preset-edit:hover { color: var(--eggplant-500); }
 .preset-delete { width: 40px; display: inline-flex; align-items: center; justify-content: center; color: var(--gray-500); border-left: 1px solid var(--gray-200); }
 .preset-delete:hover { color: var(--early); }
 

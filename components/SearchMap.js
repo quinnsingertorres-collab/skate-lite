@@ -1,18 +1,9 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adherenceLabel } from "@/lib/ladder";
-import { VehicleBadge, statusClass } from "@/components/VehicleGlyph";
+import { adherenceLabel, patternFor } from "@/lib/ladder";
+import { SHAPE_STYLE_SELECTED, TILE_OPTS, TILE_URL, stopMarkerOpts, vehicleMarkerHtml } from "@/lib/mapStyle";
+import { VehicleBadge } from "@/components/VehicleGlyph";
 import { CloseIcon, SearchIcon } from "@/components/Icons";
-
-const COLORS = { early: "#e45d32", ontime: "#8bcf00", late: "#46a5e7", nonrevenue: "#8f7ed6", "": "#8b8d91" };
-
-function markerHtml(v, selected) {
-  const c = COLORS[statusClass(v)] ?? COLORS[""];
-  const rot = v.bearing ?? 0;
-  return `<div class="map-veh${selected ? " is-selected" : ""}">
-    <svg width="22" height="22" viewBox="-11 -11 22 22" style="transform:rotate(${rot}deg)"><polygon points="0,-8 7,7 -7,7" fill="${c}" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
-    <span>${String(v.label).replace(/[<>&"]/g, "")}</span></div>`;
-}
 
 export default function SearchMap({ vehicles, routes, routeData, selectedId, onSelect }) {
   const el = useRef(null);
@@ -33,7 +24,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
       Lref.current = L;
       map.current = L.map(el.current, { zoomControl: false }).setView([42.3467, -71.0972], 12);
       L.control.zoom({ position: "topright" }).addTo(map.current);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(map.current);
+      L.tileLayer(TILE_URL, TILE_OPTS).addTo(map.current);
       shapeLayer.current = L.layerGroup().addTo(map.current);
       setTick((t) => t + 1);
     });
@@ -54,7 +45,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
       if (v.lat == null) continue;
       seen.add(v.id);
       const sel = v.id === selectedId;
-      const icon = L.divIcon({ className: "", html: markerHtml(v, sel), iconSize: [22, 22], iconAnchor: [11, 11] });
+      const icon = L.divIcon({ className: "", html: vehicleMarkerHtml(v, { selected: sel, primary: sel }), iconSize: [26, 26], iconAnchor: [13, 13] });
       let m = markers.current.get(v.id);
       if (!m) {
         m = L.marker([v.lat, v.lon], { icon, keyboard: false, riseOnHover: true }).addTo(map.current);
@@ -79,10 +70,16 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
     const L = Lref.current;
     if (!L || !shapeLayer.current) return;
     shapeLayer.current.clearLayers();
-    for (const p of Object.values(selRoute?.patterns || {})) {
-      if (p.shape?.length) L.polyline(p.shape, { color: "#7c47ae", weight: 4, opacity: 0.6 }).addTo(shapeLayer.current);
+    // Like Skate: the selected bus's own route pattern, with its stops
+    const pat = selected ? patternFor(selRoute, selected) : null;
+    if (pat?.shape?.length) L.polyline(pat.shape, SHAPE_STYLE_SELECTED).addTo(shapeLayer.current);
+    for (const st of pat?.stops || []) {
+      if (st.lat == null) continue;
+      L.circleMarker([st.lat, st.lon], stopMarkerOpts())
+        .bindTooltip(st.name, { direction: "top", offset: [0, -6], className: "map-tip" })
+        .addTo(shapeLayer.current);
     }
-  }, [selRoute, tick]);
+  }, [selRoute, selected?.pattern, selected?.dir, selectedId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selected && map.current) map.current.setView([selected.lat, selected.lon], Math.max(map.current.getZoom(), 15), { animate: true });
   }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps

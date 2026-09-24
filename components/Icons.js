@@ -96,3 +96,9 @@ export const ClockIcon = (p) => (
     <path d="M12 7.5V12l3 2" />
   </I>
 );
+export const PencilIcon = (p) => (
+  <I {...p}>
+    <path d="M4 20l4-1L19 8l-3-3L5 16z" />
+    <path d="M14 7l3 3" />
+  </I>
+);

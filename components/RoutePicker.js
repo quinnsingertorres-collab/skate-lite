@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, CloseIcon, SearchIcon } from "@/components/Icons";
+import { ChevronLeft, ChevronRight, CloseIcon, PencilIcon, SearchIcon } from "@/components/Icons";
 
-export default function RoutePicker({ routes, selected, onToggle, open, onOpenChange, loading, presets = [], onOpenPreset, onDeletePreset }) {
+export default function RoutePicker({ routes, selected, onToggle, open, onOpenChange, loading, presets = [], onOpenPreset, onDeletePreset, onRenamePreset }) {
   const [filter, setFilter] = useState("");
+  const [renaming, setRenaming] = useState(null);
   const [tab, setTab] = useState("routes");
   const f = filter.trim().toLowerCase();
   const shown = f ? routes.filter((r) => r.name.toLowerCase().includes(f) || r.long.toLowerCase().includes(f)) : routes;
@@ -26,10 +27,27 @@ export default function RoutePicker({ routes, selected, onToggle, open, onOpenCh
               <ul>
                 {presets.map((p) => (
                   <li key={p.id} className="preset">
-                    <button className="preset-open" onClick={() => onOpenPreset(p)}>
-                      <b>{p.name}</b>
-                      <span>{p.routes.map((id) => routes.find((r) => r.id === id)?.name || id).join(", ")}</span>
-                    </button>
+                    {renaming === p.id ? (
+                      <input
+                        className="preset-name-input"
+                        autoFocus
+                        defaultValue={p.name}
+                        maxLength={60}
+                        aria-label="Preset name"
+                        onFocus={(e) => e.target.select()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { onRenamePreset(p.id, e.currentTarget.value); setRenaming(null); }
+                          if (e.key === "Escape") setRenaming(null);
+                        }}
+                        onBlur={(e) => { onRenamePreset(p.id, e.currentTarget.value); setRenaming(null); }}
+                      />
+                    ) : (
+                      <button className="preset-open" onClick={() => onOpenPreset(p)}>
+                        <b>{p.name}</b>
+                        <span>{p.routes.map((id) => routes.find((r) => r.id === id)?.name || id).join(", ")}</span>
+                      </button>
+                    )}
+                    <button className="preset-edit" onClick={() => setRenaming(p.id)} aria-label={`Rename preset ${p.name}`}><PencilIcon size={13} /></button>
                     <button className="preset-delete" onClick={() => onDeletePreset(p.id)} aria-label={`Delete preset ${p.name}`}><CloseIcon size={12} /></button>
                   </li>
                 ))}
