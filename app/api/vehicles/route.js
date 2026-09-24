@@ -14,7 +14,10 @@ const SWIFTLY_URL =
   process.env.SWIFTLY_VEHICLES_URL ||
   `https://api.goswift.ly/real-time/${process.env.SWIFTLY_AGENCY || "mbta"}/vehicles?unassigned=true&verbose=true`;
 
+import { scheduleInfo } from "@/lib/adherence";
+
 export const revalidate = 0;
+export const runtime = "nodejs";
 
 async function mbtaVehicles() {
   const res = await fetch(MBTA_FEED, { next: { revalidate: 10 } });
@@ -41,8 +44,10 @@ async function mbtaVehicles() {
       lon: v.position.longitude,
       bearing: v.position.bearing ?? null,
       occupancy: v.occupancy_status || null,
+      occupancyPct: typeof v.occupancy_percentage === "number" ? v.occupancy_percentage : null,
       ts: v.timestamp || null,
       sources: ["mbta"],
+      _raw: v,
     });
   }
   return out;
@@ -118,7 +123,20 @@ export async function GET() {
     }
   }
 
-  const vehicles = [...byId.values()];
+  // Schedule adherence + scheduled position from GTFS (Swiftly's adherence wins when present)
+  const nowSec = Math.floor(Date.now() / 1000);
+  const vehicles = [...byId.values()].map((v) => {
+    const info = scheduleInfo(v, v._raw, nowSec);
+    const { _raw, ...rest } = v;
+    if (info) {
+      if (rest.adherence == null && info.adherence != null) {
+        rest.adherence = info.adherence;
+        rest.adherenceSource = "schedule";
+      } else if (rest.adherence != null) rest.adherenceSource = "swiftly";
+      if (info.sched) rest.sched = info.sched;
+    }
+    return rest;
+  });
   const error = mbta.status === "rejected" && !sw.vehicles.length ? String(mbta.reason) : null;
   return Response.json(
     {

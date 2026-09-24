@@ -1,17 +1,16 @@
 "use client";
-import { ChevronsLeft, ChevronsRight, InfoIcon, LadderIcon, MapIcon, RefreshIcon } from "@/components/Icons";
+import { ChevronsLeft, ChevronsRight, ClockIcon, LadderIcon, MapIcon, RefreshIcon } from "@/components/Icons";
 
 const VIEWS = [
   { id: "ladders", label: "Route Ladders", Icon: LadderIcon },
+  { id: "late", label: "Late View", Icon: ClockIcon, sub: true },
   { id: "map", label: "Search Map", Icon: MapIcon },
 ];
 
 export function TopNav({ liveText, stale, onRefresh, swiftly }) {
   return (
     <header className="top-nav">
-      <div className="logo" aria-label="sk8 lite">
-        sk8<span>lite</span>
-      </div>
+      <div className="logo" aria-label="sk8">sk8</div>
       <div className="top-nav-right">
         {swiftly?.status && swiftly.status !== "off" && (
           <span
@@ -37,10 +36,10 @@ export function LeftNav({ view, onView, collapsed, onCollapse }) {
   return (
     <nav className={`left-nav${collapsed ? " is-collapsed" : ""}`} aria-label="Main">
       <div className="left-nav-links">
-        {VIEWS.map(({ id, label, Icon }) => (
+        {VIEWS.map(({ id, label, Icon, sub }) => (
           <button
             key={id}
-            className={`left-nav-link${view === id ? " is-active" : ""}`}
+            className={`left-nav-link${sub ? " left-nav-link--sub" : ""}${view === id ? " is-active" : ""}`}
             onClick={() => onView(id)}
             aria-current={view === id ? "page" : undefined}
             title={label}
@@ -51,10 +50,6 @@ export function LeftNav({ view, onView, collapsed, onCollapse }) {
         ))}
       </div>
       <div className="left-nav-links">
-        <a className="left-nav-link" href="https://github.com/mbta/skate" target="_blank" rel="noreferrer" title="About Skate">
-          <InfoIcon size={16} />
-          <span>About Skate</span>
-        </a>
         <button className="left-nav-link" onClick={onCollapse} title={collapsed ? "Expand" : "Collapse"}>
           {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
           <span>Collapse</span>

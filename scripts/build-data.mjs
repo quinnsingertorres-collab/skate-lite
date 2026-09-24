@@ -51,7 +51,7 @@ async function loadZip() {
 const round = (n) => Math.round(n * 1e5) / 1e5;
 
 async function main() {
-  const want = ["routes.txt", "route_patterns.txt", "directions.txt", "stops.txt", "checkpoints.txt", "trips.txt", "stop_times.txt", "shapes.txt"];
+  const want = ["routes.txt", "route_patterns.txt", "directions.txt", "stops.txt", "checkpoints.txt", "trips.txt", "stop_times.txt", "shapes.txt", "calendar.txt", "calendar_dates.txt"];
   const files = unzipSync(new Uint8Array(await loadZip()), { filter: (f) => want.includes(f.name) });
   const txt = (n) => strFromU8(files[n]);
 
@@ -79,24 +79,54 @@ async function main() {
   }
   const repTrips = new Map([...best].map(([k, v]) => [v.trip, k]));
 
+  // Services running in the next SCHEDULE_DAYS days (for the adherence index)
+  const DAYS = Number(process.env.SCHEDULE_DAYS || 45);
+  const ymd = (d) => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const windowDates = [];
+  for (let i = -1; i <= DAYS; i++) windowDates.push(new Date(Date.now() + i * 864e5));
+  const activeServices = new Set();
+  const dowKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  for (const c of rows(txt("calendar.txt"))) {
+    for (const d of windowDates) {
+      const k = ymd(d);
+      if (k >= c.start_date && k <= c.end_date && c[dowKeys[d.getUTCDay()]] === "1") { activeServices.add(c.service_id); break; }
+    }
+  }
+  const windowSet = new Set(windowDates.map(ymd));
+  for (const c of rows(txt("calendar_dates.txt"))) if (c.exception_type === "1" && windowSet.has(c.date)) activeServices.add(c.service_id);
+
   const shapeByTrip = new Map();
-  for (const t of rows(txt("trips.txt"))) if (repTrips.has(t.trip_id)) shapeByTrip.set(t.trip_id, t.shape_id);
+  const schedTrips = new Map(); // trip_id -> route_id, for bus trips in the window
+  for (const t of rows(txt("trips.txt"))) {
+    if (repTrips.has(t.trip_id)) shapeByTrip.set(t.trip_id, t.shape_id);
+    if (routeById.has(t.route_id) && activeServices.has(t.service_id)) schedTrips.set(t.trip_id, t.route_id);
+  }
 
   // Stop times for representative trips only (stop_times.txt is ~150MB, so scan lines cheaply)
   const st = txt("stop_times.txt");
   const stHeader = parseLine(st.slice(0, st.indexOf("\n")).replace(/\r|﻿/g, ""));
   const iTrip = stHeader.indexOf("trip_id"), iStop = stHeader.indexOf("stop_id"), iSeq = stHeader.indexOf("stop_sequence"), iCp = stHeader.indexOf("checkpoint_id");
+  const iArr = stHeader.indexOf("arrival_time"), iDep = stHeader.indexOf("departure_time");
+  const toSecs = (t) => { const [h, m, x] = t.split(":").map(Number); return h * 3600 + m * 60 + (x || 0); };
   const stopsByTrip = new Map();
+  const sched = new Map(); // trip_id -> [[seq, secs, cp], ...] (timepoints + first/last stop)
   let pos = st.indexOf("\n") + 1;
   while (pos < st.length) {
     let end = st.indexOf("\n", pos);
     if (end === -1) end = st.length;
     const comma = st.indexOf(",", pos);
     const tripId = st.slice(pos, comma).replace(/"/g, "");
-    if (repTrips.has(tripId)) {
+    const isRep = repTrips.has(tripId), isSched = schedTrips.has(tripId);
+    if (isRep || isSched) {
       const v = parseLine(st.slice(pos, end).replace(/\r$/, ""));
-      if (!stopsByTrip.has(tripId)) stopsByTrip.set(tripId, []);
-      stopsByTrip.get(tripId).push({ stop: v[iStop], seq: Number(v[iSeq]), cp: v[iCp] || "" });
+      if (isRep) {
+        if (!stopsByTrip.has(tripId)) stopsByTrip.set(tripId, []);
+        stopsByTrip.get(tripId).push({ stop: v[iStop], seq: Number(v[iSeq]), cp: v[iCp] || "" });
+      }
+      if (isSched) {
+        if (!sched.has(tripId)) sched.set(tripId, []);
+        sched.get(tripId).push([Number(v[iSeq]), toSecs(v[iDep] || v[iArr]), v[iCp] || ""]);
+      }
     }
     pos = end + 1;
   }
@@ -158,6 +188,20 @@ async function main() {
   index.sort((a, b) => a.sort - b.sort);
   const feedVersion = new Date().toISOString();
   fs.writeFileSync(path.join(OUT, "routes.json"), JSON.stringify({ built: feedVersion, routes: index }));
+
+  // Server-side schedule index for adherence: keep timepoints plus each trip's first and last stop.
+  const cpIds = [], cpIdx = new Map();
+  const cpi = (c) => { if (!c) return -1; if (!cpIdx.has(c)) { cpIdx.set(c, cpIds.length); cpIds.push(c); } return cpIdx.get(c); };
+  const trips = {};
+  for (const [tripId, list] of sched) {
+    list.sort((a, b) => a[0] - b[0]);
+    const keep = list.filter((x, i) => x[2] || i === 0 || i === list.length - 1);
+    trips[tripId] = [keep.map((x) => x[0]), keep.map((x) => x[1]), keep.map((x) => cpi(x[2]))];
+  }
+  const GEN = path.join(process.cwd(), "data-gen");
+  fs.mkdirSync(GEN, { recursive: true });
+  fs.writeFileSync(path.join(GEN, "schedule.json"), JSON.stringify({ built: feedVersion, cps: cpIds, trips }));
+  console.log(`[data] wrote schedule index for ${sched.size} bus trips (${DAYS} days)`);
   console.log(`[data] wrote ${index.length} routes to public/data`);
 }
 

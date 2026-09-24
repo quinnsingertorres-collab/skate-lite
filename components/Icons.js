@@ -67,3 +67,32 @@ export const InfoIcon = (p) => (
     <path d="M12 11v6M12 7.5v.5" />
   </I>
 );
+export const SaveIcon = (p) => (
+  <I {...p}>
+    <path d="M5 3h11l3 3v15H5z" />
+    <path d="M8 3v5h7V3M8 21v-6h8v6" />
+  </I>
+);
+export const PlusIcon = (p) => (
+  <I {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </I>
+);
+export const KebabIcon = (p) => (
+  <I {...p}>
+    <circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none" />
+  </I>
+);
+export const RidersIcon = (p) => (
+  <I {...p}>
+    <path d="M5 20v-8M10 20V8M15 20v-5M20 20V4" strokeWidth="2.5" />
+  </I>
+);
+export const ClockIcon = (p) => (
+  <I {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 2" />
+  </I>
+);

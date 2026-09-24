@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, CloseIcon, SearchIcon } from "@/components/Icons";
 
-export default function RoutePicker({ routes, selected, onToggle, open, onOpenChange, loading }) {
+export default function RoutePicker({ routes, selected, onToggle, open, onOpenChange, loading, presets = [], onOpenPreset, onDeletePreset }) {
   const [filter, setFilter] = useState("");
+  const [tab, setTab] = useState("routes");
   const f = filter.trim().toLowerCase();
   const shown = f ? routes.filter((r) => r.name.toLowerCase().includes(f) || r.long.toLowerCase().includes(f)) : routes;
   const nameOf = (id) => routes.find((r) => r.id === id)?.name || id;
@@ -13,9 +14,29 @@ export default function RoutePicker({ routes, selected, onToggle, open, onOpenCh
       <div className={`picker-backdrop${open ? " is-open" : ""}`} onClick={() => onOpenChange(false)} />
       <aside className={`picker${open ? " is-open" : ""}`} aria-label="Route picker">
         <div className="picker-inner">
-          <div className="picker-tabs">
-            <span className="picker-tab picker-tab--active">Routes</span>
+          <div className="picker-tabs" role="tablist">
+            <button role="tab" aria-selected={tab === "routes"} className={`picker-tab${tab === "routes" ? " picker-tab--active" : ""}`} onClick={() => setTab("routes")}>Routes</button>
+            <button role="tab" aria-selected={tab === "presets"} className={`picker-tab${tab === "presets" ? " picker-tab--active" : ""}`} onClick={() => setTab("presets")}>Presets</button>
           </div>
+          {tab === "presets" ? (
+            <div className="presets">
+              {presets.length === 0 && (
+                <p className="picker-hint">No presets yet. Pick some routes, then use the save icon on the tab to save them as a preset.</p>
+              )}
+              <ul>
+                {presets.map((p) => (
+                  <li key={p.id} className="preset">
+                    <button className="preset-open" onClick={() => onOpenPreset(p)}>
+                      <b>{p.name}</b>
+                      <span>{p.routes.map((id) => routes.find((r) => r.id === id)?.name || id).join(", ")}</span>
+                    </button>
+                    <button className="preset-delete" onClick={() => onDeletePreset(p.id)} aria-label={`Delete preset ${p.name}`}><CloseIcon size={12} /></button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+          <>
           <label className="picker-search">
             <SearchIcon size={14} />
             <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search routes" aria-label="Search routes" />
@@ -50,6 +71,8 @@ export default function RoutePicker({ routes, selected, onToggle, open, onOpenCh
               ))}
             </ul>
           </div>
+          </>
+          )}
         </div>
         <button className="drawer-tab" onClick={() => onOpenChange(!open)} aria-label={open ? "Hide route picker" : "Show route picker"} aria-expanded={open}>
           {open ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}

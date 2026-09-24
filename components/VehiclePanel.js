@@ -59,7 +59,7 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
               <>
                 <i className={`dot ${status}`} />
                 <span className={status}>{status === "ontime" ? "On time" : status === "early" ? "Early" : "Late"}</span>
-                <span className="pp-adherence-detail">({adh.toLowerCase()})</span>
+                <span className="pp-adherence-detail">({adh.toLowerCase()}{vehicle.adherenceSource === "schedule" ? ", from schedule" : ""})</span>
               </>
             ) : (
               <span className="muted">Schedule adherence not available</span>

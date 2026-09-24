@@ -4,25 +4,45 @@ import Ladder from "@/components/Ladder";
 import VehiclePanel from "@/components/VehiclePanel";
 import RoutePicker from "@/components/RoutePicker";
 import SearchMap from "@/components/SearchMap";
+import LateView from "@/components/LateView";
 import { BottomNav, LeftNav, TopNav } from "@/components/Nav";
+import { CloseIcon, PlusIcon, SaveIcon } from "@/components/Icons";
+import { useLadderTabs } from "@/lib/useLadderTabs";
 
-const STORE_KEY = "skate-lite:routes";
 const NAV_KEY = "skate-lite:nav-collapsed";
 const POLL_MS = 10000;
+const VIEWS = ["ladders", "late", "map"];
 
-function readSaved() {
-  try {
-    const q = new URLSearchParams(window.location.search).get("r");
-    if (q) return q.split(",").filter(Boolean);
-    return JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-  } catch {
-    return [];
-  }
+function TabBar({ tabs, current, isDirty, onSelect, onClose, onAdd, onSave }) {
+  return (
+    <div className="tab-bar" role="tablist" aria-label="Route ladder tabs">
+      {tabs.map((t) => {
+        const active = t.id === current?.id;
+        return (
+          <div key={t.id} className={`tab${active ? " tab--current" : ""}`}>
+            <button role="tab" aria-selected={active} className="tab-title" onClick={() => onSelect(t.id)} title={t.title}>
+              {t.title}{active && isDirty ? " *" : ""}
+            </button>
+            {active && (
+              <button className="tab-icon" onClick={onSave} disabled={!t.routes.length} aria-label="Save as preset" title={t.presetId ? "Update preset" : "Save as preset"}>
+                <SaveIcon size={13} />
+              </button>
+            )}
+            <button className="tab-icon" onClick={() => onClose(t.id)} aria-label={`Close tab ${t.title}`}>
+              <CloseIcon size={11} />
+            </button>
+          </div>
+        );
+      })}
+      <button className="tab-add" onClick={onAdd} aria-label="New tab" title="New tab">
+        <PlusIcon size={14} />
+      </button>
+    </div>
+  );
 }
 
 export default function Home() {
   const [index, setIndex] = useState(null);
-  const [selected, setSelected] = useState([]);
   const [routeData, setRouteData] = useState({});
   const [feed, setFeed] = useState({ vehicles: [], fetched: null, error: null, sources: {} });
   const [selVehicleId, setSelVehicleId] = useState(null);
@@ -30,7 +50,8 @@ export default function Home() {
   const [view, setView] = useState("ladders");
   const [pickerOpen, setPickerOpen] = useState(true);
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [ready, setReady] = useState(false);
+  const t = useLadderTabs();
+  const selected = t.selected;
 
   const loadRoute = useCallback((id) => {
     if (!id) return;
@@ -41,25 +62,36 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/data/routes.json").then((r) => r.json()).then(setIndex);
-    const saved = readSaved();
-    setSelected(saved);
     const params = new URLSearchParams(window.location.search);
-    if (params.get("view") === "map") setView("map");
-    const narrow = window.matchMedia("(max-width: 800px), (max-height: 500px)").matches;
-    setPickerOpen(saved.length === 0 || !narrow);
+    const v = params.get("view");
+    if (VIEWS.includes(v)) setView(v);
     try { setNavCollapsed(localStorage.getItem(NAV_KEY) === "1"); } catch {}
-    setReady(true);
+
+    // No pinch/double-tap zoom of the page on phones (maps still zoom on their own)
+    const stop = (e) => e.preventDefault();
+    document.addEventListener("gesturestart", stop, { passive: false });
+    document.addEventListener("gesturechange", stop, { passive: false });
+    return () => {
+      document.removeEventListener("gesturestart", stop);
+      document.removeEventListener("gesturechange", stop);
+    };
   }, []);
 
+  // Open the picker on first load only if the current tab is empty (or on wide screens)
   useEffect(() => {
-    if (!ready) return;
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(selected)); } catch {}
+    if (!t.ready) return;
+    const narrow = window.matchMedia("(max-width: 800px), (max-height: 500px)").matches;
+    setPickerOpen(!narrow || t.selected.length === 0);
+  }, [t.ready]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!t.ready) return;
     const url = new URL(window.location.href);
     if (selected.length) url.searchParams.set("r", selected.join(",")); else url.searchParams.delete("r");
-    if (view === "map") url.searchParams.set("view", "map"); else url.searchParams.delete("view");
+    if (view !== "ladders") url.searchParams.set("view", view); else url.searchParams.delete("view");
     window.history.replaceState(null, "", url);
     selected.forEach(loadRoute);
-  }, [selected, view, ready, loadRoute]);
+  }, [selected, view, t.ready, loadRoute]);
 
   const poll = useCallback(async () => {
     try {
@@ -84,7 +116,12 @@ export default function Home() {
     return m;
   }, [feed.vehicles]);
 
-  const toggle = (id) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  // Late View needs stop names for whichever routes have late buses
+  useEffect(() => {
+    if (view !== "late") return;
+    new Set(feed.vehicles.filter((v) => v.adherence > 360 && v.route).map((v) => v.route)).forEach(loadRoute);
+  }, [view, feed.vehicles, loadRoute]);
+
   const selVehicle = feed.vehicles.find((v) => v.id === selVehicleId) || null;
   const selRoute = selVehicle?.route ? routeData[selVehicle.route] : null;
 
@@ -101,7 +138,6 @@ export default function Home() {
   const routes = index?.routes || [];
   const stale = !!feed.error || (feed.fetched && now - feed.fetched > 60);
   const liveText = feed.error ? "Live data unavailable" : feed.fetched ? `${feed.vehicles.length} buses` : "Connecting…";
-  const swiftlyOk = feed.sources.swiftly === "ok";
 
   return (
     <div className="app">
@@ -109,44 +145,60 @@ export default function Home() {
       <LeftNav view={view} onView={setView} collapsed={navCollapsed} onCollapse={collapseNav} />
 
       <main className="content">
-        {view === "ladders" ? (
+        {view === "ladders" && (
           <div className={`ladder-page${pickerOpen ? " picker-visible" : ""}`}>
             <RoutePicker
               routes={routes}
               selected={selected}
-              onToggle={toggle}
+              onToggle={t.toggleRoute}
               open={pickerOpen}
               onOpenChange={setPickerOpen}
               loading={!index}
+              presets={t.presets}
+              onOpenPreset={t.openPreset}
+              onDeletePreset={t.deletePreset}
             />
-            <div className="route-ladders">
-              {selected.length === 0 && (
-                <div className="ladders-empty">
-                  <p>Select routes from the route picker to see their ladders.</p>
-                  {swiftlyOk && (
+            <div className="ladder-main">
+              <TabBar
+                tabs={t.tabs}
+                current={t.current}
+                isDirty={t.isDirty}
+                onSelect={t.selectTab}
+                onClose={t.closeTab}
+                onAdd={t.addTab}
+                onSave={t.saveCurrentAsPreset}
+              />
+              <div className="route-ladders">
+                {selected.length === 0 && (
+                  <div className="ladders-empty">
+                    <p>Select routes from the route picker to see their ladders.</p>
                     <p className="legend">
                       <i className="early" /> Early <i className="ontime" /> On time <i className="late" /> Late
                     </p>
-                  )}
-                </div>
-              )}
-              {selected.map((id) =>
-                routeData[id] ? (
-                  <Ladder
-                    key={id}
-                    route={routeData[id]}
-                    vehicles={byRoute[id] || []}
-                    selectedId={selVehicleId}
-                    onSelect={openVehicle}
-                    onRemove={() => toggle(id)}
-                  />
-                ) : (
-                  <section key={id} className="rl rl--loading">Loading {id}…</section>
-                )
-              )}
+                  </div>
+                )}
+                {selected.map((id) =>
+                  routeData[id] ? (
+                    <Ladder
+                      key={id}
+                      route={routeData[id]}
+                      vehicles={byRoute[id] || []}
+                      selectedId={selVehicleId}
+                      onSelect={openVehicle}
+                      onRemove={() => t.toggleRoute(id)}
+                    />
+                  ) : (
+                    <section key={id} className="rl rl--loading">Loading {id}…</section>
+                  )
+                )}
+              </div>
             </div>
           </div>
-        ) : (
+        )}
+        {view === "late" && (
+          <LateView vehicles={feed.vehicles} routes={routes} routeData={routeData} selectedRoutes={selected} selectedId={selVehicleId} onSelect={openVehicle} />
+        )}
+        {view === "map" && (
           <SearchMap vehicles={feed.vehicles} routes={routes} routeData={routeData} selectedId={selVehicleId} onSelect={openVehicle} />
         )}
       </main>

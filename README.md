@@ -6,12 +6,14 @@ An unofficial, Vercel-deployable take on the MBTA's [Skate](https://github.com/m
 
 ## Features
 
-Styled after Skate's own UI (left nav, two-column route picker, yellow route pills, gray ladders with buses stacked outside the rails, properties panel), with a bottom nav on phones.
+Styled after Skate's own UI, with a bottom nav on phones.
 
-- **Route Ladders:** pick routes, and see live buses placed between timepoints. Direction 0 heads up on the right, direction 1 heads down on the left, with ⇅ Reverse. Ladders stretch to the full window height.
-- **Search Map:** every live bus on a map, searchable by bus number, run, or route. Tap a bus to see its route.
-- **Properties panel:** direction, headsign, early/late status, run, block, trip, crowding, and next stop, with a map.
-- Selected routes are remembered and saved in the URL (`?r=28,23`, `&view=map`).
+- **Route Ladders:** live buses placed between timepoints and colored by schedule adherence (red early, green on time, blue late), with schedule lines showing where each bus should be. Each route has a ⋮ menu, Reverse, and Show riders (crowding %).
+- **Tabs and presets:** a tab bar (＋ for new tabs, save icon to keep a set of routes as a preset) and a Presets tab in the route picker. Stored in your browser.
+- **Late View:** buses more than 6 minutes late, for your routes or all routes.
+- **Search Map:** every live bus on a map, searchable by bus number, run, or route.
+- **Properties panel:** direction, headsign, adherence, run, block, trip, crowding, next stop, and a map.
+- **Schedule adherence** is computed from MBTA's public GTFS schedule, so colors work without Swiftly. With `SWIFTLY_API_KEY` set, Swiftly's adherence, runs, and blocks are used instead.
 
 This is original code written to resemble Skate. None of Skate's source, styles, or icons are copied; Skate itself is AGPL-3.0.
 

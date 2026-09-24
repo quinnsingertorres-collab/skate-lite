@@ -4,11 +4,15 @@ import "./globals.css";
 export const metadata = {
   title: "sk8 lite",
   description: "Unofficial route ladders for MBTA buses, built on public MBTA data.",
+  appleWebApp: { capable: true, title: "sk8", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: "#fafafa",
 };
