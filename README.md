@@ -8,7 +8,7 @@ An unofficial, Vercel-deployable take on the MBTA's [Skate](https://github.com/m
 
 Styled after Skate's own UI, with a bottom nav on phones.
 
-- **Route Ladders:** live buses placed between timepoints and colored by schedule adherence (red early, green on time, blue late), with schedule lines showing where each bus should be. Each route has a ⋮ menu, Reverse, and Show riders (crowding %).
+- **Route Ladders:** live buses placed between timepoints and colored by schedule adherence (red late, green on time, blue early), with schedule lines showing where each bus should be. Each route has a ⋮ menu, Reverse, and Show riders (crowding %).
 - **Tabs and presets:** a tab bar (＋ for new tabs, save icon to name and save a set of routes as a preset, double-click a tab to rename) and a Presets tab in the route picker (open, rename, delete). Stored in your browser.
 - **Route variations:** like Skate, ladders merge the timepoints of every route pattern (e.g. school trips to Medford High on the 94/95/101/134), the pattern's variant shows inside each bus triangle, and the panel shows it as `101_2` with the pattern description ("School days only").
 - **Late View:** buses more than 6 minutes late, for your routes or all routes.
@@ -28,7 +28,7 @@ This is original code written to resemble Skate. None of Skate's source, styles,
 
 | Early/late, headsign, run, block (optional) | Swiftly real-time vehicles API, if `SWIFTLY_API_KEY` is set | Same `/api/vehicles` call, merged by vehicle ID |
 
-With a Swiftly key, buses are colored the way Skate colors them: red for early (more than 1 minute ahead), green for on time, and blue for late (more than 6 minutes behind). The panel then shows adherence, run and block. The key only ever lives on the server, and the 10-second edge cache means Swiftly is called at most about 6 times a minute however many people have the page open.
+With a Swiftly key, buses are colored red for late (more than 6 minutes behind), green for on time, and blue for early (more than 1 minute ahead). The panel then shows adherence, run and block. The key only ever lives on the server, and the 10-second edge cache means Swiftly is called at most about 6 times a minute however many people have the page open.
 
 **Not included:** operator names, ghost buses, swings, and detours. That data is MBTA-internal.
 

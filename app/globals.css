@@ -8,7 +8,7 @@
   --slate: #465863; --slate-hover: #586f7c;
   --teal-light: #d4e7e7; --teal-medium: #b8dbd9;
   --bus: #ffc72c;
-  --early: #e45d32; --ontime: #8bcf00; --late: #46a5e7; --nonrevenue: #8f7ed6; --plain: #8b8d91;
+  --early: #46a5e7; --ontime: #8bcf00; --late: #e45d32; --danger: #e45d32; --nonrevenue: #8f7ed6; --plain: #8b8d91;
   --top-h: 48px; --bottom-h: 58px; --picker-w: 350px;
   color-scheme: light;
 }
@@ -47,7 +47,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .top-nav-right { display: flex; align-items: center; gap: 20px; }
 .live { display: inline-flex; align-items: center; gap: 6px; color: var(--gray-600); font-size: 13px; }
 .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ontime); }
-.live.is-stale i { background: var(--early); }
+.live.is-stale i { background: var(--danger); }
 .swiftly-status { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; cursor: help; }
 .swiftly-status.is-ok { color: #4d7300; background: #e8f6cd; }
 .swiftly-status.is-error { color: #a33a18; background: #fbe3da; }
@@ -321,7 +321,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .preset-edit { width: 36px; display: inline-flex; align-items: center; justify-content: center; color: var(--gray-500); border-left: 1px solid var(--gray-200); }
 .preset-edit:hover { color: var(--eggplant-500); }
 .preset-delete { width: 40px; display: inline-flex; align-items: center; justify-content: center; color: var(--gray-500); border-left: 1px solid var(--gray-200); }
-.preset-delete:hover { color: var(--early); }
+.preset-delete:hover { color: var(--danger); }
 
 /* ---------- Late view ---------- */
 .late-view { height: 100%; overflow: auto; padding: 20px 24px; background: var(--white); }
@@ -341,7 +341,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .late-table tbody tr { cursor: pointer; }
 .late-table tbody tr:hover { background: var(--gray-50); }
 .late-table tbody tr.is-selected { background: var(--eggplant-50); }
-.late-mins { font-weight: 700; color: #1f6fa8; white-space: nowrap; }
+.late-mins { font-weight: 700; color: #c2451d; white-space: nowrap; }
 .late-veh svg { vertical-align: middle; }
 @media (max-width: 800px), (max-height: 500px) {
   .late-view { padding: 14px 12px; }
