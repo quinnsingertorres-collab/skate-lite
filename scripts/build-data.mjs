@@ -111,7 +111,7 @@ async function main() {
   const schedTrips = new Map(); // trip_id -> { pattern, headsign }, for bus trips in the window
   for (const t of rows(txt("trips.txt"))) {
     if (repTrips.has(t.trip_id)) shapeByTrip.set(t.trip_id, t.shape_id);
-    if (routeById.has(t.route_id) && activeServices.has(t.service_id)) schedTrips.set(t.trip_id, { pattern: t.route_pattern_id, headsign: t.trip_headsign });
+    if (routeById.has(t.route_id) && activeServices.has(t.service_id)) schedTrips.set(t.trip_id, { pattern: t.route_pattern_id, headsign: t.trip_headsign, block: t.block_id });
   }
 
   // Stop times for representative trips only (stop_times.txt is ~150MB, so scan lines cheaply)
@@ -224,7 +224,7 @@ async function main() {
     list.sort((a, b) => a[0] - b[0]);
     const keep = list.filter((x, i) => x[2] || i === 0 || i === list.length - 1);
     const info = schedTrips.get(tripId) || {};
-    trips[tripId] = [keep.map((x) => x[0]), keep.map((x) => x[1]), keep.map((x) => cpi(x[2])), si(info.pattern), si(info.headsign)];
+    trips[tripId] = [keep.map((x) => x[0]), keep.map((x) => x[1]), keep.map((x) => cpi(x[2])), si(info.pattern), si(info.headsign), si(info.block)];
   }
   const GEN = path.join(process.cwd(), "data-gen");
   fs.mkdirSync(GEN, { recursive: true });

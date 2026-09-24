@@ -15,6 +15,7 @@ const SWIFTLY_URL =
   `https://api.goswift.ly/real-time/${process.env.SWIFTLY_AGENCY || "mbta"}/vehicles?unassigned=true&verbose=true`;
 
 import { scheduleInfo } from "@/lib/adherence";
+import { lookupTrips } from "@/lib/mbtaTrips";
 
 export const revalidate = 0;
 export const runtime = "nodejs";
@@ -140,9 +141,27 @@ export async function GET() {
         rest.variant = m ? m[1] : "_";
       }
       if (!rest.headsign && info.headsign) rest.headsign = info.headsign;
+      if (!rest.block && info.block) rest.block = info.block;
     }
     return rest;
   });
+
+  // Trips missing from the schedule index: ask the MBTA V3 API (batched, cached)
+  const needBlock = vehicles.filter((v) => !v.block && v.trip);
+  if (needBlock.length) {
+    const found = await lookupTrips([...new Set(needBlock.map((v) => v.trip))]);
+    for (const v of needBlock) {
+      const t = found.get(v.trip);
+      if (!t) continue;
+      if (t.block) v.block = t.block;
+      if (!v.headsign && t.headsign) v.headsign = t.headsign;
+      if (!v.pattern && t.pattern) {
+        v.pattern = t.pattern;
+        const m = /-(.)-\d$/.exec(t.pattern);
+        v.variant = m ? m[1] : "_";
+      }
+    }
+  }
   const error = mbta.status === "rejected" && !sw.vehicles.length ? String(mbta.reason) : null;
   return Response.json(
     {

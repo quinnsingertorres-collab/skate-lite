@@ -89,7 +89,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
     if (!q) return [];
     const nameOf = (id) => routes.find((r) => r.id === id)?.name?.toLowerCase() || "";
     return vehicles
-      .filter((v) => String(v.label).toLowerCase().startsWith(q) || (v.run && v.run.toLowerCase().includes(q)) || nameOf(v.route) === q)
+      .filter((v) => String(v.label).toLowerCase().startsWith(q) || (v.run && v.run.toLowerCase().includes(q)) || (v.block && v.block.toLowerCase().includes(q)) || nameOf(v.route) === q)
       .slice(0, 40);
   }, [q, vehicles, routes]);
 
@@ -101,8 +101,8 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
           <input
             value={query}
             onChange={(e) => { setQuery(e.target.value); setPanelOpen(true); }}
-            placeholder="Search vehicles, runs or routes"
-            aria-label="Search vehicles, runs or routes"
+            placeholder="Search vehicles, blocks, runs or routes"
+            aria-label="Search vehicles, blocks, runs or routes"
           />
           {query && <button onClick={() => setQuery("")} aria-label="Clear search"><CloseIcon size={12} /></button>}
         </label>
@@ -125,6 +125,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
                         </span>
                         <span className="result-sub">
                           Vehicle {v.label}
+                          {v.block ? ` · Block ${v.block}` : ""}
                           {v.run ? ` · Run ${v.run}` : ""}
                           {adh ? ` · ${adh}` : ""}
                         </span>
