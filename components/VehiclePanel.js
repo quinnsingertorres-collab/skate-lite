@@ -67,12 +67,12 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
               {pattern.desc || "Route variation"} · {pattern.name}
             </div>
           )}
-          <div className="pp-adherence">
+          <div className="pp-adherence" title={vehicle.adherenceSource === "schedule" ? "Calculated from the MBTA schedule" : vehicle.adherenceSource === "swiftly" ? "From Swiftly" : undefined}>
             {adh ? (
               <>
                 <i className={`dot ${status}`} />
                 <span className={status}>{status === "ontime" ? "On time" : status === "early" ? "Early" : "Late"}</span>
-                <span className="pp-adherence-detail">({adh.toLowerCase()}{vehicle.adherenceSource === "schedule" ? ", from schedule" : ""})</span>
+                {adh !== "On time" && <span className="pp-adherence-detail">· {adh}</span>}
               </>
             ) : (
               <span className="muted">Schedule adherence not available</span>
