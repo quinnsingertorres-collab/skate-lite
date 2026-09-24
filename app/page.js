@@ -23,12 +23,16 @@ export default function Home() {
   const [feed, setFeed] = useState({ vehicles: [], fetched: null, error: null, sources: {} });
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
+  // Phones: the route list collapses to just the chips once routes are picked
+  const [pickerOpen, setPickerOpen] = useState(null);
   const [selVehicleId, setSelVehicleId] = useState(null);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
     fetch("/data/routes.json").then((r) => r.json()).then(setIndex);
-    setSelected(readSaved());
+    const saved = readSaved();
+    setSelected(saved);
+    setPickerOpen(saved.length === 0);
   }, []);
 
   useEffect(() => {
@@ -122,7 +126,10 @@ export default function Home() {
       </header>
 
       <div className="body">
-        <nav className="picker" aria-label="Routes">
+        <nav className={`picker${pickerOpen ? " open" : ""}`} aria-label="Routes">
+          <button className="picker-toggle" onClick={() => setPickerOpen((o) => !o)} aria-expanded={!!pickerOpen}>
+            {pickerOpen ? "Done" : selected.length ? "＋ Add routes" : "Choose routes"}
+          </button>
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search routes" aria-label="Search routes" />
           {selected.length > 0 && (
             <div className="chips">

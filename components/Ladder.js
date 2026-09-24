@@ -75,6 +75,7 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
           const up = right;
           return (
             <g key={v.id} className={`veh ${onTime(v.adherence) || ""}${v.id === selectedId ? " sel" : ""}`} onClick={() => onSelect(v)} role="button" aria-label={`Bus ${v.label}`}>
+              <rect className="hit" x={x - 18} y={y - 18} width={36} height={36} />
               <path d={tri(x, y, up)} />
               {below ? (
                 <text x={x} y={y + 20} textAnchor="middle">{v.label}</text>
