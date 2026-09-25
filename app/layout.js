@@ -25,6 +25,8 @@ export default function RootLayout({ children }) {
       <head>
         {/* Picks light/dark before first paint so there is no flash */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* iOS still needs this older tag to open from the home screen without Safari's bars (Next 16 no longer writes it) */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
