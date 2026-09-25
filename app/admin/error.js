@@ -3,12 +3,12 @@
 export default function AdminError({ error, reset }) {
   return (
     <main className="admin-page">
-      <div className="ad-card">
+      <div className="acct-card">
         <h2>The admin panel hit a problem</h2>
         <p className="muted">{String(error?.message || error || "Unknown error")}</p>
         <p style={{ display: "flex", gap: 8 }}>
-          <button className="ad-btn ad-btn--primary" onClick={() => reset()}>Try again</button>
-          <a className="ad-btn" href="/admin/signin">Sign in again</a>
+          <button className="acct-btn acct-btn--primary" onClick={() => reset()}>Try again</button>
+          <a className="acct-btn" href="/admin/signin">Sign in again</a>
         </p>
       </div>
     </main>

@@ -16,11 +16,11 @@ function Row({ u, act, busyId }) {
   const busy = busyId === u.id;
   return (
     <tr>
-      <td className="ad-id">{u.id}</td>
+      <td className="acct-id">{u.id}</td>
       <td>
         {editing ? (
           <input
-            className="ad-name-input"
+            className="acct-name-input"
             defaultValue={u.name}
             autoFocus
             maxLength={60}
@@ -28,38 +28,38 @@ function Row({ u, act, busyId }) {
             onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditing(false); }}
           />
         ) : (
-          <button className="ad-name" onClick={() => setEditing(true)} title="Click to rename">{u.name || <span className="muted">Add name</span>}</button>
+          <button className="acct-name" onClick={() => setEditing(true)} title="Click to rename">{u.name || <span className="muted">Add name</span>}</button>
         )}
       </td>
-      <td className="ad-date hide-sm">
+      <td className="acct-date hide-sm">
         {u.status === "pending" ? `Requested ${when(u.requestedAt)}` : u.status === "approved" ? (u.lastLogin ? `Last sign-in ${when(u.lastLogin)}` : `Approved ${when(u.approvedAt)}`) : `Created ${when(u.createdAt)}`}
       </td>
-      <td className="ad-actions">
+      <td className="acct-actions">
         {u.status === "pending" && (
           <>
-            <button className="ad-btn ad-btn--primary" disabled={busy} onClick={() => act(u.id, "approve")}>Approve</button>
-            <button className="ad-btn" disabled={busy} onClick={() => act(u.id, "reject")}>Reject</button>
+            <button className="acct-btn acct-btn--primary" disabled={busy} onClick={() => act(u.id, "approve")}>Approve</button>
+            <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "reject")}>Reject</button>
           </>
         )}
         {u.status === "approved" && (
           <>
-            <button className="ad-btn" disabled={busy} onClick={() => act(u.id, "reset")} title="Clears the password so they can set a new one (needs approval again)">Reset password</button>
-            <button className="ad-btn" disabled={busy} onClick={() => act(u.id, "disable")}>Disable</button>
+            <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "reset")} title="Clears the password so they can set a new one (needs approval again)">Reset password</button>
+            <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "disable")}>Disable</button>
           </>
         )}
         {u.status === "disabled" && (
-          <button className="ad-btn" disabled={busy} onClick={() => act(u.id, "enable")}>Enable</button>
+          <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "enable")}>Enable</button>
         )}
         {u.status === "invited" && (
-          <button className="ad-btn" onClick={() => navigator.clipboard?.writeText(u.id)}>Copy ID</button>
+          <button className="acct-btn" onClick={() => navigator.clipboard?.writeText(u.id)}>Copy ID</button>
         )}
         {confirmDelete ? (
           <>
-            <button className="ad-btn ad-btn--danger" disabled={busy} onClick={() => act(u.id, "delete")}>Confirm delete</button>
-            <button className="ad-btn" onClick={() => setConfirmDelete(false)}>Cancel</button>
+            <button className="acct-btn acct-btn--danger" disabled={busy} onClick={() => act(u.id, "delete")}>Confirm delete</button>
+            <button className="acct-btn" onClick={() => setConfirmDelete(false)}>Cancel</button>
           </>
         ) : (
-          <button className="ad-btn ad-btn--ghost" onClick={() => setConfirmDelete(true)}>Delete</button>
+          <button className="acct-btn acct-btn--ghost" onClick={() => setConfirmDelete(true)}>Delete</button>
         )}
       </td>
     </tr>
@@ -132,15 +132,15 @@ export default function Admin() {
       <header className="admin-top">
         <div className="admin-top-row">
           <a href="/" className="admin-back">← Open skate</a>
-          <button className="ad-btn" onClick={signOut}>Sign out of admin</button>
+          <button className="acct-btn" onClick={signOut}>Sign out of admin</button>
         </div>
-        <h1>Accounts{pendingCount ? <span className="ad-badge">{pendingCount} waiting</span> : null}</h1>
+        <h1>Accounts{pendingCount ? <span className="acct-badge">{pendingCount} waiting</span> : null}</h1>
       </header>
 
-      <section className="ad-card">
+      <section className="acct-card">
         <h2>Create an ID number</h2>
         <p className="muted">Give the ID to the person. They choose their own password on the sign-in page (“Set up your account”), then you approve them here.</p>
-        <form className="ad-create" onSubmit={create}>
+        <form className="acct-create" onSubmit={create}>
           <label>
             <span>Name (optional)</span>
             <input value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={60} placeholder="Who is this for?" />
@@ -149,12 +149,12 @@ export default function Admin() {
             <span>ID number (optional)</span>
             <input value={newId} onChange={(e) => setNewId(e.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="numeric" placeholder="Leave blank for a random 6-digit ID" />
           </label>
-          <button className="ad-btn ad-btn--primary">Create ID</button>
+          <button className="acct-btn acct-btn--primary">Create ID</button>
         </form>
         {created && (
-          <div className="ad-created" role="status">
+          <div className="acct-created" role="status">
             New ID <b>{created.id}</b>{created.name ? ` for ${created.name}` : ""}.
-            <button className="ad-btn" onClick={() => navigator.clipboard?.writeText(created.id)}>Copy</button>
+            <button className="acct-btn" onClick={() => navigator.clipboard?.writeText(created.id)}>Copy</button>
           </div>
         )}
       </section>
@@ -164,15 +164,15 @@ export default function Admin() {
       {SECTIONS.map((s) => {
         const list = (users || []).filter((u) => u.status === s.status);
         return (
-          <section key={s.status} className={`ad-card${s.status === "pending" && list.length ? " ad-card--attention" : ""}`}>
-            <h2>{s.title} <span className="ad-count">{users ? list.length : ""}</span></h2>
+          <section key={s.status} className={`acct-card${s.status === "pending" && list.length ? " acct-card--attention" : ""}`}>
+            <h2>{s.title} <span className="acct-count">{users ? list.length : ""}</span></h2>
             {!users ? (
               <p className="muted">Loading…</p>
             ) : list.length === 0 ? (
               <p className="muted">{s.empty}</p>
             ) : (
-              <div className="ad-table-wrap">
-                <table className="ad-table">
+              <div className="acct-table-wrap">
+                <table className="acct-table">
                   <tbody>
                     {list.map((u) => <Row key={u.id} u={u} act={act} busyId={busyId} />)}
                   </tbody>
