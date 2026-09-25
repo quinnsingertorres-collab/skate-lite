@@ -7,7 +7,12 @@ const VIEWS = [
   { id: "map", label: "Search Map", Icon: MapIcon },
 ];
 
-export function TopNav({ liveText, stale, onRefresh, swiftly }) {
+async function signOut() {
+  await fetch("/api/auth/signout", { method: "POST" }).catch(() => {});
+  window.location.href = "/signin";
+}
+
+export function TopNav({ liveText, stale, onRefresh, swiftly, me }) {
   return (
     <header className="top-nav">
       <div className="logo" aria-label="sk8">sk8</div>
@@ -27,6 +32,17 @@ export function TopNav({ liveText, stale, onRefresh, swiftly }) {
         <button className="icon-btn" onClick={onRefresh} aria-label="Refresh data" title="Refresh">
           <RefreshIcon size={20} />
         </button>
+        {me?.role === "admin" && (
+          <a className="top-link" href="/admin" title="Create IDs and approve accounts">
+            Admin{me.pending ? <span className="top-badge">{me.pending}</span> : null}
+          </a>
+        )}
+        {me && (
+          <button className="avatar" onClick={signOut} title={`Signed in as ${me.id}. Click to sign out.`} aria-label="Sign out">
+            <span className="avatar-id">{String(me.id).slice(-2)}</span>
+            <span className="avatar-out">Sign out</span>
+          </button>
+        )}
       </div>
     </header>
   );

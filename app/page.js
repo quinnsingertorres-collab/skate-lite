@@ -103,6 +103,24 @@ export default function Home() {
   const [pickerOpen, setPickerOpen] = useState(true);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const t = useLadderTabs();
+  const [me, setMe] = useState(null);
+  useEffect(() => {
+    const loadMe = () =>
+      fetch("/api/auth/me", { cache: "no-store" })
+        .then((r) => (r.status === 401 ? (window.location.href = "/signin", null) : r.json()))
+        .then(async (d) => {
+          if (!d) return;
+          if (d.role === "admin") {
+            const u = await fetch("/api/admin/users", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+            d.pending = u?.users?.filter((x) => x.status === "pending").length || 0;
+          }
+          setMe(d);
+        })
+        .catch(() => {});
+    loadMe();
+    const i = setInterval(loadMe, 5 * 60 * 1000);
+    return () => clearInterval(i);
+  }, []);
   const selected = t.selected;
 
   const loadRoute = useCallback((id) => {
@@ -148,6 +166,7 @@ export default function Home() {
   const poll = useCallback(async () => {
     try {
       const r = await fetch("/api/vehicles", { cache: "no-store" });
+      if (r.status === 401) { window.location.href = "/signin"; return; }
       const d = await r.json();
       setFeed({ vehicles: d.vehicles || [], fetched: d.fetched, error: d.error || null, sources: d.sources || {} });
     } catch (e) {
@@ -193,7 +212,7 @@ export default function Home() {
 
   return (
     <div className="app">
-      <TopNav liveText={liveText} stale={stale} onRefresh={poll} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
+      <TopNav liveText={liveText} stale={stale} onRefresh={poll} me={me} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
       <LeftNav view={view} onView={setView} collapsed={navCollapsed} onCollapse={collapseNav} />
 
       <main className="content">

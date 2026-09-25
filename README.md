@@ -32,6 +32,22 @@ With a Swiftly key, buses are colored red for late (more than 6 minutes behind),
 
 **Not included:** operator names, ghost buses, swings, and detours. That data is MBTA-internal.
 
+## Sign-in and accounts
+
+Every page and data request requires signing in with an **ID number and password**.
+
+- **You (admin)** sign in with `ADMIN_ID` / `ADMIN_PASSWORD` from the environment and get an **Admin** link in the top bar (`/admin`).
+- In the admin panel you **create ID numbers** (random 6-digit, or pick your own) and give one to each person.
+- The person opens the site, chooses **Set up your account**, enters their ID and picks a password. The account is then **waiting for approval**.
+- You **approve** (or reject) it in the admin panel. After that they can sign in. You can also disable, re-enable, reset a password (the person sets a new one and needs approval again), rename, or delete.
+
+Security: passwords are hashed with scrypt; sessions are signed, HTTP-only cookies (30 days); an ID locks for 15 minutes after 5 wrong attempts; disabling or resetting an account signs that person out within 15 minutes.
+
+Setup on Vercel:
+1. **Storage**: connect an Upstash Redis database to this project (a new free one, or an existing one: every key sk8 lite writes starts with `sk8lite:`, so it can share a database safely). That adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Optional: `DB_KEY_PREFIX` changes the prefix.
+2. **Settings → Environment Variables**: add `AUTH_SECRET` (32+ random characters, e.g. `openssl rand -base64 48`), `ADMIN_ID` (digits) and `ADMIN_PASSWORD` (8+ characters).
+3. Redeploy.
+
 ## Deploy on Vercel
 
 1. Import the GitHub repo in Vercel.
