@@ -266,6 +266,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .pp-tabs { display: flex; border-bottom: 1px solid var(--gray-300); padding: 0 16px; }
 .pp-tab { font-size: 14px; font-weight: 600; color: var(--gray-500); padding: 8px 12px; border-bottom: 3px solid transparent; margin-bottom: -1px; text-transform: uppercase; letter-spacing: .3px; }
 .pp-tab.is-active { color: var(--font-dark); border-bottom-color: var(--eggplant-500); }
+.pp-tab:disabled { opacity: .4; cursor: default; }
 .pp-body { display: flex; flex-direction: column; flex: 1; }
 .pp-props { display: grid; grid-template-columns: 110px 1fr; gap: 8px 12px; margin: 0; padding: 16px; border-bottom: 1px solid var(--gray-200); }
 .pp-props dt { font-size: 12px; font-weight: 500; text-transform: uppercase; color: var(--gray-500); letter-spacing: .3px; padding-top: 1px; }
@@ -351,3 +352,47 @@ ul { list-style: none; margin: 0; padding: 0; }
   .tab { min-width: 6.5rem; }
   .rl-menu-btn { height: 34px; }
 }
+
+/* ---------- Upcoming stops & block minischedule ---------- */
+.ms-empty { font-size: 13px; color: var(--gray-500); margin: 6px 0 0; }
+.ms-upcoming ol { list-style: none; margin: 8px 0 0; padding: 0; position: relative; }
+.ms-upcoming li { position: relative; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 5px 0; font-size: 13px; }
+.ms-upcoming li::before { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--gray-300); }
+.ms-upcoming li:first-child::before { top: 11px; }
+.ms-upcoming li:last-child::before { bottom: calc(100% - 11px); }
+.ms-dot { position: relative; z-index: 1; width: 8px; height: 8px; margin: 4px 0 0 3px; border-radius: 50%; background: var(--white); border: 2px solid var(--gray-400); }
+.ms-upcoming li.is-tp .ms-dot { border-color: var(--gray-700); }
+.ms-upcoming li.is-next .ms-dot { background: var(--eggplant-500); border-color: var(--eggplant-500); }
+.ms-stop { display: flex; flex-direction: column; min-width: 0; }
+.ms-stop-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-upcoming li.is-tp .ms-stop-name { font-weight: 600; }
+.ms-tp-id { font-size: 10px; font-weight: 700; color: var(--font-grey); letter-spacing: .3px; }
+.ms-times { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.ms-times b { font-weight: 600; }
+.ms-in { font-size: 11px; color: var(--gray-500); }
+.ms-sched { font-size: 11px; color: var(--gray-500); }
+.ms-sched em { font-style: normal; font-weight: 600; }
+.ms-sched em.late { color: var(--late); } .ms-sched em.early { color: var(--early); } .ms-sched em.ontime { color: #5d8c00; }
+.ms-upcoming li.is-skipped { color: var(--gray-400); text-decoration: line-through; }
+.ms-skipped { font-size: 12px; color: var(--late); text-decoration: none; }
+.ms-more { margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--eggplant-500); padding: 4px 0; }
+.ms-block { padding: 12px 16px 16px; }
+.ms-block-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.ms-label { font-size: 12px; font-weight: 500; text-transform: uppercase; color: var(--gray-500); letter-spacing: .3px; }
+.ms-past-toggle { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--eggplant-500); }
+.ms-trips { list-style: none; margin: 0; padding: 0; border: 1px solid var(--gray-300); border-radius: 6px; overflow: hidden; }
+.ms-trip + .ms-trip { border-top: 1px solid var(--gray-200); }
+.ms-row { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 12px; font-size: 14px; }
+.ms-row-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-row-time { font-variant-numeric: tabular-nums; color: var(--gray-700); white-space: nowrap; }
+.ms-trip.is-past { color: var(--gray-400); } .ms-trip.is-past .ms-row-time { color: var(--gray-400); }
+.ms-trip.is-current { background: var(--eggplant-50); }
+.ms-trip.is-current .ms-row { font-weight: 600; }
+.ms-tri polygon { fill: var(--gray-500); }
+.ms-trip.is-past .ms-tri polygon { fill: var(--gray-300); }
+.ms-tri.ontime polygon { fill: var(--ontime); } .ms-tri.early polygon { fill: var(--early); } .ms-tri.late polygon { fill: var(--late); }
+.ms-tps { list-style: none; margin: 0; padding: 0 12px 8px 36px; }
+.ms-tps li { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 3px 0; border-left: 2px solid var(--gray-300); padding-left: 10px; }
+.ms-tps li.is-past { color: var(--gray-400); } .ms-tps li.is-past .ms-row-time { color: var(--gray-400); }
+.ms-tp-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-note { font-size: 11px; color: var(--gray-500); margin: 8px 2px 0; }

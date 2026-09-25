@@ -105,13 +105,26 @@ async function main() {
     }
   }
   const windowSet = new Set(windowDates.map(ymd));
-  for (const c of rows(txt("calendar_dates.txt"))) if (c.exception_type === "1" && windowSet.has(c.date)) activeServices.add(c.service_id);
+  // Exact dates each service runs in the window (for "which trips does this block run today")
+  const serviceDates = new Map();
+  const addDate = (sid, d) => { if (!serviceDates.has(sid)) serviceDates.set(sid, new Set()); serviceDates.get(sid).add(d); };
+  for (const c of rows(txt("calendar.txt"))) {
+    for (const d of windowDates) {
+      const k = ymd(d);
+      if (k >= c.start_date && k <= c.end_date && c[dowKeys[d.getUTCDay()]] === "1") addDate(c.service_id, k);
+    }
+  }
+  for (const c of rows(txt("calendar_dates.txt"))) {
+    if (!windowSet.has(c.date)) continue;
+    if (c.exception_type === "1") { activeServices.add(c.service_id); addDate(c.service_id, c.date); }
+    if (c.exception_type === "2") serviceDates.get(c.service_id)?.delete(c.date);
+  }
 
   const shapeByTrip = new Map();
   const schedTrips = new Map(); // trip_id -> { pattern, headsign }, for bus trips in the window
   for (const t of rows(txt("trips.txt"))) {
     if (repTrips.has(t.trip_id)) shapeByTrip.set(t.trip_id, t.shape_id);
-    if (routeById.has(t.route_id) && activeServices.has(t.service_id)) schedTrips.set(t.trip_id, { pattern: t.route_pattern_id, headsign: t.trip_headsign, block: t.block_id });
+    if (routeById.has(t.route_id) && activeServices.has(t.service_id)) schedTrips.set(t.trip_id, { pattern: t.route_pattern_id, headsign: t.trip_headsign, block: t.block_id, service: t.service_id, route: t.route_id, dir: t.direction_id });
   }
 
   // Stop times for representative trips only (stop_times.txt is ~150MB, so scan lines cheaply)
@@ -122,6 +135,7 @@ async function main() {
   const toSecs = (t) => { const [h, m, x] = t.split(":").map(Number); return h * 3600 + m * 60 + (x || 0); };
   const stopsByTrip = new Map();
   const sched = new Map(); // trip_id -> [[seq, secs, cp], ...] (timepoints + first/last stop)
+  const busStopIds = new Set();
   let pos = st.indexOf("\n") + 1;
   while (pos < st.length) {
     let end = st.indexOf("\n", pos);
@@ -138,6 +152,7 @@ async function main() {
       if (isSched) {
         if (!sched.has(tripId)) sched.set(tripId, []);
         sched.get(tripId).push([Number(v[iSeq]), toSecs(v[iDep] || v[iArr]), v[iCp] || ""]);
+        busStopIds.add(v[iStop]);
       }
     }
     pos = end + 1;
@@ -224,11 +239,19 @@ async function main() {
     list.sort((a, b) => a[0] - b[0]);
     const keep = list.filter((x, i) => x[2] || i === 0 || i === list.length - 1);
     const info = schedTrips.get(tripId) || {};
-    trips[tripId] = [keep.map((x) => x[0]), keep.map((x) => x[1]), keep.map((x) => cpi(x[2])), si(info.pattern), si(info.headsign), si(info.block)];
+    trips[tripId] = [keep.map((x) => x[0]), keep.map((x) => x[1]), keep.map((x) => cpi(x[2])), si(info.pattern), si(info.headsign), si(info.block), si(info.service)];
   }
   const GEN = path.join(process.cwd(), "data-gen");
   fs.mkdirSync(GEN, { recursive: true });
-  fs.writeFileSync(path.join(GEN, "schedule.json"), JSON.stringify({ built: feedVersion, cps: cpIds, strs: strIds, trips }));
+  fs.writeFileSync(path.join(GEN, "schedule.json"), JSON.stringify({
+    built: feedVersion,
+    cps: cpIds,
+    cpNames: cpIds.map((c) => cpNames.get(c) || c),
+    strs: strIds,
+    services: Object.fromEntries([...serviceDates].filter(([sid]) => strIdx.has(sid)).map(([sid, ds]) => [sid, [...ds].sort()])),
+    stopNames: Object.fromEntries([...busStopIds].map((id) => [id, stops.get(id)?.name || id])),
+    trips,
+  }));
   console.log(`[data] wrote schedule index for ${sched.size} bus trips (${DAYS} days)`);
   console.log(`[data] wrote ${index.length} routes to public/data`);
 }

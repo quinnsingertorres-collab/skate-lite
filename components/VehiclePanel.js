@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { OCCUPANCY, STATUS, adherenceLabel, onTime, patternFor, stopName, variantLabel } from "@/lib/ladder";
 import { SHAPE_STYLE, TILE_OPTS, TILE_URL, stopMarkerOpts, vehicleMarkerHtml } from "@/lib/mapStyle";
 import { VehicleBadge } from "@/components/VehicleGlyph";
 import { CloseIcon } from "@/components/Icons";
+import { BlockSchedule, UpcomingStops, useVehicleSchedule } from "@/components/Minischedule";
 
 function MiniMap({ route, vehicle }) {
   const el = useRef(null);
@@ -47,6 +48,8 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
   const status = onTime(vehicle.adherence);
   const headsign = vehicle.headsign || dir?.dest || (vehicle.route ? "" : "Not on a route");
   const pattern = patternFor(route, vehicle);
+  const [tab, setTab] = useState("status");
+  const schedule = useVehicleSchedule(vehicle.trip);
 
   return (
     <aside className="pp" aria-label={`Vehicle ${vehicle.label}`}>
@@ -88,9 +91,15 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
       </div>
 
       <div className="pp-tabs" role="tablist">
-        <span className="pp-tab is-active" role="tab" aria-selected="true">Status</span>
+        <button className={`pp-tab${tab === "status" ? " is-active" : ""}`} role="tab" aria-selected={tab === "status"} onClick={() => setTab("status")}>Status</button>
+        <button className={`pp-tab${tab === "block" ? " is-active" : ""}`} role="tab" aria-selected={tab === "block"} onClick={() => setTab("block")} disabled={!vehicle.trip}>Block</button>
       </div>
 
+      {tab === "block" ? (
+        <div className="pp-body">
+          <BlockSchedule data={schedule} vehicle={vehicle} now={now} upFor={(d) => d === 0} />
+        </div>
+      ) : (
       <div className="pp-body">
         <dl className="pp-props">
           <dt>Run</dt><dd>{vehicle.run || <span className="muted">Not available</span>}</dd>
@@ -106,8 +115,16 @@ export default function VehiclePanel({ vehicle, route, now, onClose }) {
           <div className="pp-value">{stop}</div>
         </div>
 
+        {vehicle.trip && (
+          <div className="pp-section">
+            <div className="pp-label">Upcoming stops</div>
+            <UpcomingStops data={schedule} now={now} nextSeq={vehicle.seq} />
+          </div>
+        )}
+
         <MiniMap route={route} vehicle={vehicle} />
       </div>
+      )}
     </aside>
   );
 }

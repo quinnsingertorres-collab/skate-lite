@@ -13,7 +13,7 @@ Styled after Skate's own UI, with a bottom nav on phones.
 - **Route variations:** like Skate, ladders merge the timepoints of every route pattern (e.g. school trips to Medford High on the 94/95/101/134), the pattern's variant shows inside each bus triangle, and the panel shows it as `101_2` with the pattern description ("School days only").
 - **Late View:** buses more than 6 minutes late, for your routes or all routes.
 - **Search Map:** every live bus on a map, searchable by bus number, block, run, or route.
-- **Properties panel:** direction, headsign, adherence, run, block, trip, crowding, next stop, and a map. Block IDs come from the MBTA schedule (GTFS `trips.txt`), with an MBTA V3 API lookup for trips added after the build.
+- **Properties panel:** direction, headsign, adherence, run, block, trip, crowding, next stop, and a map. **Upcoming stops** lists the rest of the trip with live predicted times (MBTA TripUpdates feed), plus scheduled time and how far off it is at timepoints. The **Block** tab is Skate's minischedule: every trip in the bus's block today, the current trip expanded into timepoints with scheduled times, and past trips behind a toggle. Block IDs come from the MBTA schedule (GTFS `trips.txt`), with an MBTA V3 API lookup for trips added after the build.
 - **Schedule adherence** is computed from MBTA's public GTFS schedule, so colors work without Swiftly. With `SWIFTLY_API_KEY` set, Swiftly's adherence, runs, and blocks are used instead.
 
 This is original code written to resemble Skate. None of Skate's source, styles, or icons are copied; Skate itself is AGPL-3.0.
