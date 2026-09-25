@@ -10,6 +10,7 @@ import { CloseIcon, PlusIcon, SaveIcon } from "@/components/Icons";
 import { useLadderTabs } from "@/lib/useLadderTabs";
 
 const NAV_KEY = "skate-lite:nav-collapsed";
+const PICKER_KEY = "skate-lite:picker-open"; // remembered on this device
 const POLL_MS = 10000;
 const VIEWS = ["ladders", "late", "map"];
 
@@ -143,6 +144,9 @@ export default function Home() {
   // Open the picker on first load only if the current tab is empty (or on wide screens)
   useEffect(() => {
     if (!t.ready) return;
+    let saved = null;
+    try { saved = localStorage.getItem(PICKER_KEY); } catch {}
+    if (saved === "0" || saved === "1") { setPickerOpen(saved === "1"); return; }
     const narrow = window.matchMedia("(max-width: 800px), (max-height: 500px)").matches;
     setPickerOpen(!narrow || t.selected.length === 0);
   }, [t.ready]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -194,6 +198,11 @@ export default function Home() {
     loadRoute(v.route);
   }, [loadRoute]);
 
+  const changePicker = useCallback((open) => {
+    setPickerOpen(open);
+    try { localStorage.setItem(PICKER_KEY, open ? "1" : "0"); } catch {}
+  }, []);
+
   const collapseNav = () => setNavCollapsed((c) => {
     try { localStorage.setItem(NAV_KEY, c ? "0" : "1"); } catch {}
     return !c;
@@ -216,7 +225,7 @@ export default function Home() {
               selected={selected}
               onToggle={t.toggleRoute}
               open={pickerOpen}
-              onOpenChange={setPickerOpen}
+              onOpenChange={changePicker}
               loading={!index}
               presets={t.presets}
               onOpenPreset={t.openPreset}

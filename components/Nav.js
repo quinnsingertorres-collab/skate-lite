@@ -12,6 +12,12 @@ async function signOut() {
   window.location.href = "/signin";
 }
 
+// First letter of the person's name (falls back to the end of their ID if no name is set)
+function initial(me) {
+  const letter = String(me.name || "").trim().match(/\p{L}|\p{N}/u)?.[0];
+  return letter ? letter.toUpperCase() : String(me.id).slice(-2);
+}
+
 export function TopNav({ liveText, stale, onRefresh, swiftly, me }) {
   return (
     <header className="top-nav">
@@ -32,14 +38,9 @@ export function TopNav({ liveText, stale, onRefresh, swiftly, me }) {
         <button className="icon-btn" onClick={onRefresh} aria-label="Refresh data" title="Refresh">
           <RefreshIcon size={20} />
         </button>
-        {me?.admin && (
-          <a className="top-link" href="/admin" title="Create IDs and approve accounts">
-            Admin{me.pending ? <span className="top-badge">{me.pending}</span> : null}
-          </a>
-        )}
         {me && (
-          <button className="avatar" onClick={signOut} title={`Signed in as ${me.id}. Click to sign out.`} aria-label="Sign out">
-            <span className="avatar-id">{String(me.id).slice(-2)}</span>
+          <button className="avatar" onClick={signOut} title={`Signed in as ${me.name ? `${me.name} (${me.id})` : me.id}. Click to sign out.`} aria-label="Sign out">
+            <span className="avatar-id">{initial(me)}</span>
             <span className="avatar-out">Sign out</span>
           </button>
         )}
