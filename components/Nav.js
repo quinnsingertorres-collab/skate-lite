@@ -15,7 +15,7 @@ async function signOut() {
 export function TopNav({ liveText, stale, onRefresh, swiftly, me }) {
   return (
     <header className="top-nav">
-      <div className="logo" aria-label="sk8">sk8</div>
+      <div className="logo" aria-label="skate">skate</div>
       <div className="top-nav-right">
         {swiftly?.status && swiftly.status !== "off" && (
           <span
@@ -32,7 +32,7 @@ export function TopNav({ liveText, stale, onRefresh, swiftly, me }) {
         <button className="icon-btn" onClick={onRefresh} aria-label="Refresh data" title="Refresh">
           <RefreshIcon size={20} />
         </button>
-        {me?.role === "admin" && (
+        {me?.admin && (
           <a className="top-link" href="/admin" title="Create IDs and approve accounts">
             Admin{me.pending ? <span className="top-badge">{me.pending}</span> : null}
           </a>

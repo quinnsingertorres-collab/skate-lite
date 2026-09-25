@@ -40,11 +40,11 @@ export default function SignIn() {
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo" aria-label="sk8 lite">sk8<span>lite</span></div>
+        <div className="auth-logo" aria-label="skate lite">skate<span>lite</span></div>
         <h1>{mode === "signin" ? "Sign in" : "Set up your account"}</h1>
         <p className="auth-sub">
           {mode === "signin"
-            ? "Sign in with the ID number you were given for sk8 lite."
+            ? "Sign in with the ID number you were given for skate lite."
             : "Enter the ID number you were given and choose a password. The admin will approve your account."}
         </p>
 
@@ -79,7 +79,7 @@ export default function SignIn() {
           )}
         </div>
       </div>
-      <p className="auth-foot">sk8 lite is an unofficial, independent app. Don&apos;t use your MBTA or work password here.</p>
+      <p className="auth-foot">skate lite is an unofficial, independent app. Don&apos;t use your MBTA or work password here.</p>
     </main>
   );
 }

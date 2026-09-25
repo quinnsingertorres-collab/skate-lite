@@ -1,7 +1,7 @@
 import { COOKIE, authConfigured, cookieOptions, signSession } from "@/lib/session";
 import { dbConfigured } from "@/lib/db";
 import { json } from "@/lib/authServer";
-import { adminVersion, checkPassword, cleanId, clearFails, getUser, isAdminLogin, isLocked, recordFail, touchLogin } from "@/lib/users";
+import { checkPassword, cleanId, clearFails, getUser, isAdminLogin, isLocked, recordFail, touchLogin } from "@/lib/users";
 
 export const runtime = "nodejs";
 const WRONG = "ID number or password is incorrect.";
@@ -17,7 +17,8 @@ export async function POST(req) {
     return json({ ok: true, role: payload.role }, 200, { "Set-Cookie": `${COOKIE}=${token}; ${cookieOptions()}` });
   };
 
-  if (isAdminLogin(id, password)) return ok({ id, role: "admin", ver: adminVersion() });
+  // The admin signs in separately at /admin/signin
+  if (isAdminLogin(id, password)) return json({ error: "Admin sign-in is separate. Use the admin sign-in page." }, 403);
   if (!dbConfigured()) return json({ error: "Accounts database isn't connected yet." }, 503);
 
   if (await isLocked(id)) return json({ error: "Too many attempts. Try again in 15 minutes." }, 429);

@@ -66,6 +66,11 @@ function Row({ u, act, busyId }) {
   );
 }
 
+async function signOut() {
+  await fetch("/api/admin/signout", { method: "POST" }).catch(() => {});
+  window.location.href = "/admin/signin";
+}
+
 export default function Admin() {
   const [users, setUsers] = useState(null);
   const [error, setError] = useState("");
@@ -75,10 +80,16 @@ export default function Admin() {
   const [busyId, setBusyId] = useState(null);
 
   const load = useCallback(async () => {
-    const r = await fetch("/api/admin/users", { cache: "no-store" });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) setError(d.error || "Couldn't load accounts.");
-    else { setError(""); setUsers(d.users); }
+    try {
+      const r = await fetch("/api/admin/users", { cache: "no-store" });
+      if (r.status === 401) { window.location.href = "/admin/signin"; return; }
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setError(d.error || `Couldn't load accounts (error ${r.status}).`); setUsers((u) => u || []); }
+      else { setError(""); setUsers(Array.isArray(d.users) ? d.users : []); }
+    } catch {
+      setError("Couldn't reach the server. Check your connection.");
+      setUsers((u) => u || []);
+    }
   }, []);
 
   useEffect(() => {
@@ -119,7 +130,10 @@ export default function Admin() {
   return (
     <main className="admin-page">
       <header className="admin-top">
-        <a href="/" className="admin-back">← Back to sk8</a>
+        <div className="admin-top-row">
+          <a href="/" className="admin-back">← Open skate</a>
+          <button className="ad-btn" onClick={signOut}>Sign out of admin</button>
+        </div>
         <h1>Accounts{pendingCount ? <span className="ad-badge">{pendingCount} waiting</span> : null}</h1>
       </header>
 

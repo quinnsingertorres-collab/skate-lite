@@ -108,14 +108,7 @@ export default function Home() {
     const loadMe = () =>
       fetch("/api/auth/me", { cache: "no-store" })
         .then((r) => (r.status === 401 ? (window.location.href = "/signin", null) : r.json()))
-        .then(async (d) => {
-          if (!d) return;
-          if (d.role === "admin") {
-            const u = await fetch("/api/admin/users", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-            d.pending = u?.users?.filter((x) => x.status === "pending").length || 0;
-          }
-          setMe(d);
-        })
+        .then((d) => d && setMe(d))
         .catch(() => {});
     loadMe();
     const i = setInterval(loadMe, 5 * 60 * 1000);

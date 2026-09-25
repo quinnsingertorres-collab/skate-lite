@@ -1,7 +1,7 @@
 export default function manifest() {
   return {
-    name: "sk8 lite",
-    short_name: "sk8",
+    name: "skate lite",
+    short_name: "skate",
     description: "Route ladders for MBTA buses, built on public MBTA data.",
     start_url: "/",
     display: "standalone",
