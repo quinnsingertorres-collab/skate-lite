@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adherenceLabel, patternFor } from "@/lib/ladder";
-import { SHAPE_STYLE_SELECTED, TILE_OPTS, TILE_URL, stopMarkerOpts, vehicleMarkerHtml } from "@/lib/mapStyle";
+import { SHAPE_STYLE_SELECTED, TILE_OPTS, TILE_URL, stopMarker, vehicleMarkerHtml } from "@/lib/mapStyle";
 import { VehicleBadge } from "@/components/VehicleGlyph";
 import { CloseIcon, SearchIcon } from "@/components/Icons";
 
@@ -75,14 +75,12 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
     if (pat?.shape?.length) L.polyline(pat.shape, SHAPE_STYLE_SELECTED).addTo(shapeLayer.current);
     for (const st of pat?.stops || []) {
       if (st.lat == null) continue;
-      L.circleMarker([st.lat, st.lon], stopMarkerOpts())
-        .bindTooltip(st.name, { direction: "top", offset: [0, -6], className: "map-tip" })
-        .addTo(shapeLayer.current);
+      stopMarker(L, st).addTo(shapeLayer.current);
     }
   }, [selRoute, selected?.pattern, selected?.dir, selectedId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selected && map.current) map.current.setView([selected.lat, selected.lon], Math.max(map.current.getZoom(), 15), { animate: true });
-  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedId, tick > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const q = query.trim().toLowerCase();
   const results = useMemo(() => {

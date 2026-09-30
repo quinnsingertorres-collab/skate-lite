@@ -102,3 +102,27 @@ export const PencilIcon = (p) => (
     <path d="M14 7l3 3" />
   </I>
 );
+export const MenuIcon = (p) => (
+  <I {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </I>
+);
+export const MapSearchIcon = (p) => (
+  <I {...p}>
+    <path d="M9.5 18.5L3 20.5V6l6.5-2 6 2L21 4.2V10" />
+    <path d="M9.5 4v14.5M15.5 6v4" />
+    <circle cx="16.5" cy="15.5" r="3" />
+    <path d="M18.7 17.7L21 20" />
+  </I>
+);
+export const DirectionsIcon = (p) => (
+  <I {...p}>
+    <path d="M12 2.8L21.2 12 12 21.2 2.8 12z" />
+    <path d="M9 14v-2.5a1.5 1.5 0 0 1 1.5-1.5H15M13 8l2 2-2 2" />
+  </I>
+);
+export const LocateIcon = (p) => (
+  <I {...p}>
+    <path d="M20.5 3.5L3.5 10.5l7 3 3 7z" />
+  </I>
+);

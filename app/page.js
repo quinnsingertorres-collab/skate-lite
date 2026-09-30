@@ -5,7 +5,7 @@ import VehiclePanel from "@/components/VehiclePanel";
 import RoutePicker from "@/components/RoutePicker";
 import SearchMap from "@/components/SearchMap";
 import LateView from "@/components/LateView";
-import { BottomNav, LeftNav, TopNav } from "@/components/Nav";
+import { BottomNav, LeftNav, TopNav, VIEW_LABELS } from "@/components/Nav";
 import { CloseIcon, PlusIcon, SaveIcon } from "@/components/Icons";
 import { useLadderTabs } from "@/lib/useLadderTabs";
 
@@ -99,6 +99,7 @@ export default function Home() {
   const [routeData, setRouteData] = useState({});
   const [feed, setFeed] = useState({ vehicles: [], fetched: null, error: null, sources: {} });
   const [selVehicleId, setSelVehicleId] = useState(null);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [view, setView] = useState("ladders");
   const [pickerOpen, setPickerOpen] = useState(true);
@@ -195,6 +196,7 @@ export default function Home() {
 
   const openVehicle = useCallback((v) => {
     setSelVehicleId(v.id);
+    setPanelOpen(true);
     loadRoute(v.route);
   }, [loadRoute]);
 
@@ -214,7 +216,7 @@ export default function Home() {
 
   return (
     <div className="app">
-      <TopNav liveText={liveText} stale={stale} onRefresh={poll} me={me} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
+      <TopNav title={view === "ladders" ? (t.current?.title && t.current.title !== "Untitled" ? t.current.title : "Route Ladders") : VIEW_LABELS[view]} liveText={liveText} stale={stale} onRefresh={poll} me={me} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
       <LeftNav view={view} onView={setView} collapsed={navCollapsed} onCollapse={collapseNav} />
 
       <main className="content">
@@ -280,7 +282,15 @@ export default function Home() {
 
       <BottomNav view={view} onView={setView} />
 
-      {selVehicle && <VehiclePanel vehicle={selVehicle} route={selRoute} now={now} onClose={() => setSelVehicleId(null)} />}
+      {selVehicle && panelOpen && (
+        <VehiclePanel
+          vehicle={selVehicle}
+          route={selRoute}
+          now={now}
+          onClose={() => { setPanelOpen(false); setSelVehicleId(null); }}
+          onOpenMap={() => { setPanelOpen(false); setView("map"); }}
+        />
+      )}
     </div>
   );
 }
