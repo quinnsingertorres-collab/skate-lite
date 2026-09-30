@@ -8,7 +8,7 @@ import { dbConfigured, k, redis } from "@/lib/db";
 
 const PUBLIC_PATHS = [
   "/signin", "/api/auth/signin", "/api/auth/setup", "/api/auth/signout",
-  "/admin/signin", "/api/admin/signin", "/api/admin/signout",
+  "/admin/signin", "/api/admin/signin", "/api/admin/signout", "/api/version",
 ];
 
 async function adminVersion() {

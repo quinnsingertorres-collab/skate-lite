@@ -1,6 +1,7 @@
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import ThemeClock from "@/components/ThemeClock";
+import UpdateCheck from "@/components/UpdateCheck";
 import { THEME_SCRIPT } from "@/lib/sunTheme";
 
 export const metadata = {
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ThemeClock />
+        <UpdateCheck />
         {children}
       </body>
     </html>
