@@ -1,23 +1,28 @@
 // Live bus positions: MBTA's public enhanced feed, optionally merged with Swiftly.
 // Swiftly adds schedule adherence (early/late), headsign, run and block. The API key
-// stays on the server (SWIFTLY_API_KEY); responses are cached 10s at the edge, so
-// Swiftly is called at most about once per 10s no matter how many people are viewing.
+// stays on the server (SWIFTLY_API_KEY). Feeds are always fetched fresh (shared for a few
+// seconds per server) so buses are shown where they are now.
 const MBTA_FEED = process.env.VEHICLES_URL || "https://cdn.mbta.com/realtime/VehiclePositions_enhanced.json";
 import { scheduleInfo } from "@/lib/adherence";
 import { lookupTrips } from "@/lib/mbtaTrips";
+import { liveJson } from "@/lib/liveFetch";
 import { AGENCY, SWIFTLY_KEY, swiftlyVehicles } from "@/lib/swiftly";
 
 export const revalidate = 0;
+export const dynamic = "force-dynamic";
+const MAX_AGE_S = 10 * 60; // hide buses whose last GPS report is older than this
 export const runtime = "nodejs";
 
 async function mbtaVehicles() {
-  const res = await fetch(MBTA_FEED, { next: { revalidate: 10 } });
-  if (!res.ok) throw new Error(`MBTA feed ${res.status}`);
-  const feed = await res.json();
+  const res = await liveJson(MBTA_FEED);
+  if (!res.ok || !res.body) throw new Error(`MBTA feed ${res.status}`);
+  const feed = res.body;
+  const nowS = Math.floor(Date.now() / 1000);
   const out = [];
   for (const e of feed.entity || []) {
     const v = e.vehicle;
     if (!v?.position) continue;
+    if (v.timestamp && nowS - v.timestamp > MAX_AGE_S) continue; // stale GPS: not where the bus is now
     const trip = v.trip || {};
     const route = trip.route_id || null;
     if (route && !/^\d/.test(route)) continue; // skip rail; keep bus + SL (numeric IDs)
@@ -144,7 +149,7 @@ export async function GET() {
     },
     {
       status: error ? 502 : 200,
-      headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=20" },
+      headers: { "Cache-Control": "private, no-store" },
     }
   );
 }
