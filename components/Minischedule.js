@@ -141,9 +141,6 @@ export function BlockSchedule({ data, vehicle, now, upFor }) {
   const layover = Math.max(0, span - inService);
 
   const rows = [];
-  if (showPast || curIdx === 0) {
-    rows.push({ key: "pullout", kind: "garage", title: "Pull out", sub: first.timepoints[0] ? `First trip from ${first.timepoints[0].name}` : null, time: "—", cls: "bs-row--garage" });
-  }
   trips.forEach((t, i) => {
     if (i < curIdx && !showPast) return;
     const state = i < curIdx ? "past" : i === curIdx ? "current" : "future";
@@ -188,7 +185,7 @@ export function BlockSchedule({ data, vehicle, now, upFor }) {
           </li>
         ))}
       </ol>
-      <p className="ms-note">Scheduled times from the MBTA timetable. Garage pull-out times and runs aren&apos;t in the MBTA&apos;s public data.</p>
+      <p className="ms-note">Scheduled times from the MBTA timetable. Runs aren&apos;t in the MBTA&apos;s public data.</p>
     </div>
   );
 }
