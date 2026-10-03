@@ -159,7 +159,6 @@ export function BlockSchedule({ data, vehicle, now, upFor }) {
       rows.push({ key: `${t.trip}-${tp.seq}`, kind: "tp", up, title: tp.name, time: fmtTime(tp.time), cls: `bs-row--tp${passed ? " is-past" : ""}` });
     }
   });
-  rows.push({ key: "pullin", kind: "garage", title: "Pull in", sub: last.timepoints.at(-1) ? `Last trip ends at ${last.timepoints.at(-1).name} · ${fmtTime(last.end)}` : null, time: "—", cls: "bs-row--garage" });
 
   return (
     <div className="bs">
@@ -189,7 +188,7 @@ export function BlockSchedule({ data, vehicle, now, upFor }) {
           </li>
         ))}
       </ol>
-      <p className="ms-note">Scheduled times from the MBTA timetable. Garage pull-out and pull-in times and runs aren&apos;t in the MBTA&apos;s public data.</p>
+      <p className="ms-note">Scheduled times from the MBTA timetable. Garage pull-out times and runs aren&apos;t in the MBTA&apos;s public data.</p>
     </div>
   );
 }
