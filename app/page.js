@@ -282,6 +282,7 @@ export default function Home() {
 
       <BottomNav view={view} onView={setView} />
 
+      {selVehicle && panelOpen && <div className="pp-dim" onClick={() => { setPanelOpen(false); setSelVehicleId(null); }} />}
       {selVehicle && panelOpen && (
         <VehiclePanel
           vehicle={selVehicle}

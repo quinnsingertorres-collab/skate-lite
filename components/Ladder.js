@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ladderPosition, variantLabel } from "@/lib/ladder";
+import { atTripStart, ladderPosition, variantLabel } from "@/lib/ladder";
 import { VehicleGlyph, statusClass } from "@/components/VehicleGlyph";
 import { CloseIcon, KebabIcon, ReverseIcon, RidersIcon } from "@/components/Icons";
 
@@ -11,7 +11,7 @@ const BASE = 63; // centre → first bus lane
 const GROUP_H = 34; // buses closer than this vertically share lanes
 const LANE_W = 32;
 const EDGE = 26; // room past the outermost lane
-const MARGIN_Y = 44;
+const MARGIN_Y = 64; // room above/below the ends for buses laying over
 const MIN_GAP = 34;
 
 function assignLanes(list) {
@@ -85,11 +85,12 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
     return a ?? b ?? null;
   };
 
-  const ups = [], downs = [], incoming = [];
+  const ups = [], downs = [], incoming = [], endTop = [], endBottom = [];
   for (const v of vehicles) {
     const pos = v.dir == null ? null : ladderPosition(route, v);
     if (pos == null) { incoming.push(v); continue; }
     const up = (v.dir === 0) !== reversed;
+    if (atTripStart(route, v)) { (up ? endBottom : endTop).push(v); continue; }
     const sp = schedPos(v.sched);
     (up ? ups : downs).push({ v, y: yFor(pos), up, schedY: sp == null ? null : yFor(sp) });
   }
@@ -106,6 +107,12 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
     ...downL.map((p) => ({ ...p, x: cx - BASE - p.lane * laneStep, railX: cx - LINE })),
   ];
   const y0 = yFor(reversed ? 0 : n - 1), y1 = yFor(reversed ? n - 1 : 0);
+  // Buses at the start of a trip: below the bottom pointing right (about to go up the right rail),
+  // above the top pointing left (about to go down the left rail)
+  const ends = [
+    ...endBottom.map((v, i) => ({ v, side: "right", x: cx + (i - (endBottom.length - 1) / 2) * 34, y: Math.max(y0, y1) + 34 })),
+    ...endTop.map((v, i) => ({ v, side: "left", x: cx + (i - (endTop.length - 1) / 2) * 34, y: Math.min(y0, y1) - 50 })),
+  ];
 
   return (
     <section className="rl" aria-label={`Route ${route.name} ladder`}>
@@ -150,6 +157,19 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
               <line key={`s-${v.id}`} className={`rl-sched ${statusClass(v)}`} x1={x} y1={y} x2={railX} y2={schedY} />
             ) : null
           )}
+          {ends.map(({ v, x, y, side }) => (
+            <g
+              key={v.id}
+              className={`rl-vehicle rl-vehicle--end${v.id === selectedId ? " rl-vehicle--selected" : ""}`}
+              transform={`translate(${x},${y})`}
+              onClick={() => onSelect(v)}
+              role="button"
+              aria-label={`Bus ${v.label}, at the start of its trip`}
+            >
+              <rect className="hit" x={-17} y={-14} width={34} height={44} />
+              <VehicleGlyph side={side} label={showRiders ? riderLabel(v) : v.label} variant={variantLabel(v)} className={statusClass(v)} />
+            </g>
+          ))}
           {placed.map(({ v, x, y, up }) => (
             <g
               key={v.id}
@@ -167,9 +187,14 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
       </div>
       <div className="rl-incoming" aria-label="Buses not on the main route">
         {incoming.map((v) => (
-          <button key={v.id} className="rl-incoming-veh" onClick={() => onSelect(v)} title="Not on the main route pattern">
-            <svg width="14" height="12" viewBox="-7 -6 14 12" aria-hidden="true">
-              <g className={`vg ${statusClass(v)}`}><polygon className="vg-tri" points="0,-4.5 5,4 -5,4" /></g>
+          <button key={v.id} className={`rl-incoming-veh${v.id === selectedId ? " is-selected" : ""}`} onClick={() => onSelect(v)} title="Not on the main route pattern">
+            <svg width="22" height="20" viewBox="-11 -10 22 20" aria-hidden="true">
+              <g className={`vg ${statusClass(v)}`}>
+                <polygon className="vg-tri" points={(v.dir === 0) !== reversed ? "0,-8 9,7 -9,7" : "0,8 9,-7 -9,-7"} />
+                {variantLabel(v) && (
+                  <text className="vg-variant" x="0" y={(v.dir === 0) !== reversed ? 2.5 : -2.5} textAnchor="middle" dominantBaseline="central" fontSize="8">{variantLabel(v)}</text>
+                )}
+              </g>
             </svg>
             {showRiders ? riderLabel(v) : v.label}
           </button>

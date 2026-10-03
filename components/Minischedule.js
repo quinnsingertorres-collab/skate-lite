@@ -90,56 +90,106 @@ export function UpcomingStops({ data, now, nextSeq = null, limit = 8 }) {
   );
 }
 
-/** Block tab: every trip in the bus's block, like Skate's minischedule. */
+const hm = (secs) => {
+  const m = Math.max(0, Math.round(secs / 60));
+  const h = Math.floor(m / 60);
+  return h ? `${h} hr ${m % 60} min` : `${m} min`;
+};
+
+function RailIcon({ kind, up, className = "" }) {
+  if (kind === "trip")
+    return (
+      <span className={`bs-ic bs-ic--trip ${className}`}>
+        <svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden="true"><path d={up ? "M-4.5 2.5L0 -2.5L4.5 2.5" : "M-4.5 -2.5L0 2.5L4.5 -2.5"} /></svg>
+      </span>
+    );
+  if (kind === "tp")
+    return (
+      <span className="bs-ic bs-ic--tp">
+        <svg width="8" height="8" viewBox="-4 -4 8 8" aria-hidden="true"><path d={up ? "M-2.3 1.2L0 -1.2L2.3 1.2" : "M-2.3 -1.2L0 1.2L2.3 -1.2"} /></svg>
+      </span>
+    );
+  if (kind === "garage")
+    return (
+      <span className="bs-ic bs-ic--garage">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <rect x="4" y="2.5" width="10" height="11" rx="2.4" />
+          <path d="M4 8.2h10M6 13.5v2M12 13.5v2" />
+          <circle cx="6.6" cy="11" r=".9" /><circle cx="11.4" cy="11" r=".9" />
+        </svg>
+      </span>
+    );
+  return <span className="bs-ic bs-ic--none" />;
+}
+
+/**
+ * Block tab: the whole block as one continuous schedule (Skate's run/block layout):
+ * pull out → each trip with its timepoints → layovers between trips → pull in.
+ */
 export function BlockSchedule({ data, vehicle, now, upFor }) {
   const [showPast, setShowPast] = useState(false);
   if (!data) return <p className="ms-empty">Loading block…</p>;
   if (!data.trips.length) return <p className="ms-empty">No schedule found for this trip.</p>;
-  const curIdx = data.trips.findIndex((t) => t.trip === data.trip);
+  const trips = data.trips;
+  const curIdx = Math.max(0, trips.findIndex((t) => t.trip === data.trip));
   const nextSeq = vehicle.seq ?? null;
-  const pastCount = data.trips.filter((t, i) => i < curIdx).length;
+  const status = vehicleStatus(vehicle);
+
+  const first = trips[0], last = trips[trips.length - 1];
+  const inService = trips.reduce((a, t) => a + (t.end - t.start), 0);
+  const span = last.end - first.start;
+  const layover = Math.max(0, span - inService);
+
+  const rows = [];
+  if (showPast || curIdx === 0) {
+    rows.push({ key: "pullout", kind: "garage", title: "Pull out", sub: first.timepoints[0] ? `First trip from ${first.timepoints[0].name}` : null, time: "—", cls: "bs-row--garage" });
+  }
+  trips.forEach((t, i) => {
+    if (i < curIdx && !showPast) return;
+    const state = i < curIdx ? "past" : i === curIdx ? "current" : "future";
+    const up = upFor(t.dir);
+    if (i > 0 && (showPast || i > curIdx)) {
+      const gap = t.start - trips[i - 1].end;
+      if (gap > 0) rows.push({ key: `lay-${t.trip}`, kind: "none", title: gap >= 45 * 60 ? "Break" : "Layover", time: hm(gap), cls: `bs-row--layover is-${i <= curIdx ? "past" : "future"}` });
+    }
+    const name = `${t.route || ""}_${t.variant && t.variant !== "_" ? t.variant : ""} ${t.headsign || ""}`.trim();
+    rows.push({ key: t.trip, kind: "trip", up, title: name, time: fmtTime(t.start), cls: `bs-row--trip is-${state}`, current: state === "current", status });
+    for (const tp of t.timepoints) {
+      const passed = state === "past" || (state === "current" && nextSeq != null && tp.seq < nextSeq);
+      rows.push({ key: `${t.trip}-${tp.seq}`, kind: "tp", up, title: tp.name, time: fmtTime(tp.time), cls: `bs-row--tp${passed ? " is-past" : ""}` });
+    }
+  });
+  rows.push({ key: "pullin", kind: "garage", title: "Pull in", sub: last.timepoints.at(-1) ? `Last trip ends at ${last.timepoints.at(-1).name} · ${fmtTime(last.end)}` : null, time: "—", cls: "bs-row--garage" });
 
   return (
-    <div className="ms-block">
-      <div className="ms-block-head">
-        <span className="ms-label">Block</span>
-        <b>{data.block || "—"}</b>
-        {pastCount > 0 && (
-          <button className="ms-past-toggle" onClick={() => setShowPast((s) => !s)}>
-            {showPast ? "Hide past trips" : `Show past trips (${pastCount})`}
-          </button>
-        )}
-      </div>
-      <ol className="ms-trips">
-        {data.trips.map((t, i) => {
-          if (i < curIdx && !showPast) return null;
-          const state = i < curIdx ? "past" : i === curIdx ? "current" : "future";
-          const name = `${t.route || ""}_${t.variant && t.variant !== "_" ? t.variant : ""} ${t.headsign || ""}`;
-          return (
-            <li key={t.trip} className={`ms-trip is-${state}`}>
-              <div className="ms-row">
-                <Tri up={upFor(t.dir)} className={state === "current" ? vehicleStatus(vehicle) : ""} />
-                <span className="ms-row-text">{name}</span>
-                <span className="ms-row-time">{fmtTime(t.start)}</span>
-              </div>
-              {state === "current" && (
-                <ol className="ms-tps">
-                  {t.timepoints.map((tp) => {
-                    const passed = nextSeq != null && tp.seq < nextSeq;
-                    return (
-                      <li key={`${tp.seq}-${tp.cp}`} className={passed ? "is-past" : ""}>
-                        <span className="ms-tp-name">{tp.name}</span>
-                        <span className="ms-row-time">{fmtTime(tp.time)}</span>
-                      </li>
-                    );
-                  })}
-                </ol>
-              )}
-            </li>
-          );
-        })}
+    <div className="bs">
+      <div className="bs-id"><span>Block</span><b>{data.block || "—"}</b></div>
+      <dl className="bs-summary">
+        <dt>Trips</dt><dd>{trips.length}</dd>
+        <dt>In service</dt><dd>{hm(inService)}</dd>
+        <dt>Layovers</dt><dd>{hm(layover)}</dd>
+        <dt>Total hours</dt><dd>{hm(span)}</dd>
+      </dl>
+      <div className="bs-cols"><span>Departure point</span><span>Scheduled departure</span></div>
+      {curIdx > 0 && (
+        <button className="bs-past" onClick={() => setShowPast((s) => !s)}>
+          <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true"><path d="M6 1L11 6H1zM6 15L1 10h10z" /></svg>
+          {showPast ? "Hide past trips" : "Show past trips"}
+        </button>
+      )}
+      <ol className="bs-list">
+        {rows.map((r) => (
+          <li key={r.key} className={`bs-row ${r.cls}${r.current ? ` is-here ${r.status}` : ""}`}>
+            <span className="bs-rail"><RailIcon kind={r.kind} up={r.up} className={r.current ? r.status : ""} /></span>
+            <span className="bs-name">
+              {r.title}
+              {r.sub && <small>{r.sub}</small>}
+            </span>
+            <span className="bs-time">{r.time}</span>
+          </li>
+        ))}
       </ol>
-      <p className="ms-note">Scheduled times from the MBTA timetable.</p>
+      <p className="ms-note">Scheduled times from the MBTA timetable. Garage pull-out and pull-in times and runs aren&apos;t in the MBTA&apos;s public data.</p>
     </div>
   );
 }
