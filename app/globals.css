@@ -645,3 +645,13 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 .pp-status-row { flex-wrap: wrap; row-gap: 2px; }
 .pp-status-row .pp-age { margin-left: auto; }
+/* Search map: zoom to my location */
+.search-map-area { position: relative; min-height: 0; height: 100%; }
+.search-map-area .search-map-canvas { position: absolute; inset: 0; height: auto; }
+.map-locate { position: absolute; z-index: 500; top: 84px; right: 10px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--white); color: var(--gray-700); border: 2px solid rgba(0,0,0,.2); border-radius: 4px; background-clip: padding-box; }
+.map-locate:hover { background: var(--gray-100); }
+.map-locate.is-on { color: #2f7ef6; }
+.map-locate.is-busy svg { animation: locate-pulse 1s ease-in-out infinite; }
+@keyframes locate-pulse { 50% { opacity: .3; } }
+.map-locate-msg { position: absolute; z-index: 500; left: 12px; right: 56px; bottom: 28px; padding: 10px 12px; border-radius: 6px; background: var(--tip-bg); color: #fff; font-size: 13px; }

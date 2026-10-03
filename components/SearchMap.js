@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { adherenceLabel, patternFor } from "@/lib/ladder";
 import { SHAPE_STYLE_SELECTED, TILE_OPTS, TILE_URL, stopMarker, vehicleMarkerHtml } from "@/lib/mapStyle";
 import { VehicleBadge } from "@/components/VehicleGlyph";
-import { CloseIcon, SearchIcon } from "@/components/Icons";
+import { CloseIcon, LocateIcon, SearchIcon } from "@/components/Icons";
 
 export default function SearchMap({ vehicles, routes, routeData, selectedId, onSelect }) {
   const el = useRef(null);
@@ -14,6 +14,38 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
   const [query, setQuery] = useState("");
   const [panelOpen, setPanelOpen] = useState(true);
   const [tick, setTick] = useState(0);
+  // "Zoom to my location"
+  const [locating, setLocating] = useState(false);
+  const [locMsg, setLocMsg] = useState("");
+  const [me, setMe] = useState(null);
+  const meLayer = useRef(null);
+  const locate = () => {
+    if (!navigator.geolocation) { setLocMsg("Location isn't available in this browser."); return; }
+    setLocating(true); setLocMsg("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const p = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+        setMe(p);
+        map.current?.setView([p.lat, p.lon], Math.max(map.current.getZoom(), 16), { animate: true });
+      },
+      (err) => {
+        setLocating(false);
+        setLocMsg(err.code === 1 ? "Location permission is off. Allow location for this site in your browser or phone settings." : "Couldn't find your location. Try again.");
+        setTimeout(() => setLocMsg(""), 6000);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 }
+    );
+  };
+  useEffect(() => {
+    const L = Lref.current;
+    if (!L || !map.current || !me) return;
+    meLayer.current?.remove();
+    meLayer.current = L.layerGroup([
+      L.circle([me.lat, me.lon], { radius: Math.min(me.acc || 0, 500), stroke: false, fillColor: "#2f7ef6", fillOpacity: 0.12, interactive: false }),
+      L.circleMarker([me.lat, me.lon], { radius: 7, color: "#fff", weight: 3, fillColor: "#2f7ef6", fillOpacity: 1, interactive: false }),
+    ]).addTo(map.current);
+  }, [me, tick]);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
@@ -137,7 +169,13 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
         )}
         {!q && <p className="search-tip">Search by bus number (e.g. 1920){vehicles.some((v) => v.run) ? ", run" : ""} or route, or tap a bus on the map.</p>}
       </div>
-      <div className="search-map-canvas" ref={el} />
+      <div className="search-map-area">
+        <div className="search-map-canvas" ref={el} />
+        <button className={`map-locate${locating ? " is-busy" : ""}${me ? " is-on" : ""}`} onClick={locate} aria-label="Zoom to my location" title="Zoom to my location">
+          <LocateIcon size={20} />
+        </button>
+        {locMsg && <div className="map-locate-msg" role="status">{locMsg}</div>}
+      </div>
     </div>
   );
 }
