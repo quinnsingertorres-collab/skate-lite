@@ -1,6 +1,6 @@
 // Block schedule (Skate's "minischedule") + live upcoming-stop predictions for one bus's trip.
 import { blockSchedule, stopName, tripPredictions } from "@/lib/blocks";
-import { todayServiceDate } from "@/lib/adherence";
+import { serviceDateForTrip } from "@/lib/adherence";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
@@ -10,7 +10,7 @@ export async function GET(req) {
   const trip = (searchParams.get("trip") || "").slice(0, 64);
   const dateParam = searchParams.get("date") || "";
   if (!trip) return Response.json({ error: "trip required" }, { status: 400 });
-  const date = /^\d{8}$/.test(dateParam) ? dateParam : todayServiceDate(Math.floor(Date.now() / 1000));
+  const date = serviceDateForTrip(trip, Math.floor(Date.now() / 1000), /^\d{8}$/.test(dateParam) ? dateParam : null);
 
   const sched = blockSchedule(trip, date);
   const current = sched?.trips.find((t) => t.trip === trip) || null;
