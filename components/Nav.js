@@ -135,7 +135,7 @@ export function BottomNav({ view, onView }) {
     <nav className="bottom-nav" aria-label="Main">
       {VIEWS.map(({ id, short, MobileIcon }) => (
         <button key={id} className={`bottom-nav-link${view === id ? " is-active" : ""}`} onClick={() => onView(id)} aria-current={view === id ? "page" : undefined}>
-          <span className="bn-icon"><MobileIcon size={30} strokeWidth={1.6} /></span>
+          <span className="bn-icon"><MobileIcon size={24} strokeWidth={1.7} /></span>
           <span className="bn-label">{short}</span>
         </button>
       ))}

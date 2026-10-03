@@ -655,3 +655,11 @@ ul { list-style: none; margin: 0; padding: 0; }
 .map-locate.is-busy svg { animation: locate-pulse 1s ease-in-out infinite; }
 @keyframes locate-pulse { 50% { opacity: .3; } }
 .map-locate-msg { position: absolute; z-index: 500; left: 12px; right: 56px; bottom: 28px; padding: 10px 12px; border-radius: 6px; background: var(--tip-bg); color: #fff; font-size: 13px; }
+/* Slimmer phone bottom bar */
+.bottom-nav-link { gap: 2px; padding: 6px 0 4px; font-size: 12px; }
+.bottom-nav-link .bn-icon { width: 52px; height: 36px; border-radius: 9px; }
+@media (max-width: 800px), (max-height: 500px) { :root { --bottom-h: 64px; } }
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --bottom-h: 48px; }
+  .bottom-nav-link .bn-icon { width: 40px; height: 30px; }
+}
