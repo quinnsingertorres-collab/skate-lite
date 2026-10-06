@@ -29,7 +29,13 @@ export default function SignIn() {
         return;
       }
       const next = new URLSearchParams(window.location.search).get("next");
-      window.location.href = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      // Only go back to a page on this site (blocks tricks like "/\\evil.com")
+      let dest = "/";
+      try {
+        const u = new URL(next || "/", window.location.origin);
+        if (u.origin === window.location.origin) dest = u.pathname + u.search + u.hash;
+      } catch {}
+      window.location.href = dest;
     } catch {
       setError("Couldn't reach the server. Check your connection.");
     } finally {

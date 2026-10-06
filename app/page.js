@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Ladder from "@/components/Ladder";
 import VehiclePanel from "@/components/VehiclePanel";
 import RoutePicker from "@/components/RoutePicker";
@@ -118,11 +118,14 @@ export default function Home() {
   }, []);
   const selected = t.selected;
 
+  const requested = useRef(new Set()); // route files already loaded or loading
   const loadRoute = useCallback((id) => {
-    if (!id) return;
+    if (!id || requested.current.has(id)) return;
+    requested.current.add(id);
     fetch(`/data/r/${encodeURIComponent(id)}.json`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setRouteData((m) => (m[id] ? m : { ...m, [id]: d })));
+      .then((d) => (d ? setRouteData((m) => (m[id] ? m : { ...m, [id]: d })) : requested.current.delete(id)))
+      .catch(() => requested.current.delete(id));
   }, []);
 
   useEffect(() => {

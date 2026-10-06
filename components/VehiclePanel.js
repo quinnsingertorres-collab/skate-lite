@@ -16,6 +16,7 @@ function distM(aLat, aLon, bLat, bLon) {
 // Nearest stop on the bus's route, for "Current location"
 function nearestStop(pattern, v) {
   let best = null, bestD = Infinity;
+  if (v.lat == null || v.lon == null) return null;
   for (const s of pattern?.stops || []) {
     if (s.lat == null) continue;
     const d = distM(v.lat, v.lon, s.lat, s.lon);
@@ -107,6 +108,7 @@ export default function VehiclePanel({ vehicle, route, now, onClose, onOpenMap }
   const schedule = useVehicleSchedule(vehicle.trip);
   const near = nearestStop(pattern, vehicle);
   const crowd = CROWD[vehicle.occupancy];
+  const hasPos = vehicle.lat != null && vehicle.lon != null;
 
   return (
     <aside className="pp" aria-label={`Vehicle ${vehicle.label}`}>
@@ -191,10 +193,12 @@ export default function VehiclePanel({ vehicle, route, now, onClose, onOpenMap }
 
           <div className="pp-section">
             <div className="pp-label">Current location</div>
-            <div className="pp-text">{near ? (near.d < 40 ? `At ${near.name}` : `Near ${near.name}`) : `${vehicle.lat.toFixed(4)}, ${vehicle.lon.toFixed(4)}`}</div>
+            <div className="pp-text">{near ? (near.d < 40 ? `At ${near.name}` : `Near ${near.name}`) : hasPos ? `${vehicle.lat.toFixed(4)}, ${vehicle.lon.toFixed(4)}` : "Not available"}</div>
+            {hasPos && (
             <a className="pp-directions" href={directionsUrl(vehicle)} target="_blank" rel="noreferrer">
               <DirectionsIcon size={16} /> Get directions to bus
             </a>
+            )}
           </div>
 
           <div className="pp-section">
@@ -202,7 +206,7 @@ export default function VehiclePanel({ vehicle, route, now, onClose, onOpenMap }
             <div className="pp-text">{next}</div>
           </div>
 
-          <MiniMap route={route} vehicle={vehicle} onOpenMap={onOpenMap} />
+          {hasPos && <MiniMap route={route} vehicle={vehicle} onOpenMap={onOpenMap} />}
 
           {vehicle.trip && (
             <div className="pp-section">

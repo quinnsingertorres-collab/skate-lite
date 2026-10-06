@@ -111,7 +111,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
     }
   }, [selRoute, selected?.pattern, selected?.dir, selectedId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (selected && map.current) map.current.setView([selected.lat, selected.lon], Math.max(map.current.getZoom(), 15), { animate: true });
+    if (selected && selected.lat != null && selected.lon != null && map.current) map.current.setView([selected.lat, selected.lon], Math.max(map.current.getZoom(), 15), { animate: true });
   }, [selectedId, tick > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const q = query.trim().toLowerCase();

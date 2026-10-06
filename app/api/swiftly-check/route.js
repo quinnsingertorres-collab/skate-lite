@@ -26,7 +26,7 @@ export async function GET() {
     }
   }
   return Response.json(
-    { keySet: true, keyLength: SWIFTLY_KEY.length, agency: AGENCY, customUrl: !!process.env.SWIFTLY_VEHICLES_URL, results },
-    { headers: { "Cache-Control": "public, s-maxage=60" } }
+    { keySet: true, agency: AGENCY, customUrl: !!process.env.SWIFTLY_VEHICLES_URL, results },
+    { headers: { "Cache-Control": "private, no-store" } }
   );
 }

@@ -29,7 +29,7 @@ export async function PUT(req) {
   const s = await getSession(req);
   if (!s) return json({ error: "Sign in required" }, 401);
   if (!dbConfigured()) return json({ error: "Database not connected" }, 503);
-  const body = await req.json().catch(() => ({}));
+  const body = (await req.json().catch(() => null)) || {};
   const presets = clean(body.presets);
   if (!presets) return json({ error: "Bad presets" }, 400);
   await redis("SET", key(s.id), JSON.stringify(presets));

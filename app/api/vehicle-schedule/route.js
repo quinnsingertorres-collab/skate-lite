@@ -8,9 +8,8 @@ export const revalidate = 0;
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const trip = (searchParams.get("trip") || "").slice(0, 64);
-  const dateParam = searchParams.get("date") || "";
   if (!trip) return Response.json({ error: "trip required" }, { status: 400 });
-  const date = serviceDateForTrip(trip, Math.floor(Date.now() / 1000), /^\d{8}$/.test(dateParam) ? dateParam : null);
+  const date = serviceDateForTrip(trip, Math.floor(Date.now() / 1000));
 
   const sched = blockSchedule(trip, date);
   const current = sched?.trips.find((t) => t.trip === trip) || null;
@@ -26,6 +25,6 @@ export async function GET(req) {
 
   return Response.json(
     { trip, date, block: sched?.block || null, trips: sched?.trips || [], predictions },
-    { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=20" } }
+    { headers: { "Cache-Control": "private, no-store" } }
   );
 }

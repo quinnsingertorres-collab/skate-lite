@@ -140,8 +140,10 @@ async function main() {
   while (pos < st.length) {
     let end = st.indexOf("\n", pos);
     if (end === -1) end = st.length;
-    const comma = st.indexOf(",", pos);
-    const tripId = st.slice(pos, comma).replace(/"/g, "");
+    // Fast path when trip_id is the first column (as in MBTA's feed); otherwise parse the line
+    const tripId = iTrip === 0
+      ? st.slice(pos, st.indexOf(",", pos)).replace(/"/g, "")
+      : parseLine(st.slice(pos, end).replace(/\r$/, ""))[iTrip];
     const isRep = repTrips.has(tripId), isSched = schedTrips.has(tripId);
     if (isRep || isSched) {
       const v = parseLine(st.slice(pos, end).replace(/\r$/, ""));
@@ -157,7 +159,6 @@ async function main() {
     }
     pos = end + 1;
   }
-  void iTrip;
 
   const neededShapes = new Set(shapeByTrip.values());
   const shapes = new Map();

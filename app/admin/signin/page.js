@@ -19,7 +19,12 @@ export default function AdminSignIn() {
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setError(d.error || "Something went wrong."); return; }
       const next = new URLSearchParams(window.location.search).get("next");
-      window.location.href = next && next.startsWith("/admin") ? next : "/admin";
+      let dest = "/admin";
+      try {
+        const u = new URL(next || "/admin", window.location.origin);
+        if (u.origin === window.location.origin && u.pathname.startsWith("/admin")) dest = u.pathname + u.search + u.hash;
+      } catch {}
+      window.location.href = dest;
     } catch {
       setError("Couldn't reach the server. Check your connection.");
     } finally {

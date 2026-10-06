@@ -41,7 +41,7 @@ export async function proxy(req) {
   if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next();
 
   // ---- Admin panel: admin cookie only
-  if (pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin/")) {
+  if (pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin/") || pathname === "/api/swiftly-check") {
     const s = await verifySession(req.cookies.get(ADMIN_COOKIE)?.value);
     const ok = s && s.role === "admin" && s.id === (process.env.ADMIN_ID || "").trim() && s.ver === (await adminVersion());
     return ok ? NextResponse.next() : deny(req, { admin: true });
@@ -54,12 +54,13 @@ export async function proxy(req) {
   // Every so often, re-confirm the account and roll the cookie forward
   const now = Math.floor(Date.now() / 1000);
   if (now - (session.chk || 0) > RECHECK_SECS) {
-    let ok = false;
-    try { ok = await userStillValid(session); } catch { ok = true; /* database hiccup: don't lock people out */ }
+    let ok;
+    try { ok = await userStillValid(session); } catch { return NextResponse.next(); /* database hiccup: let this request through, check again next time */ }
     if (!ok) return deny(req);
     const res = NextResponse.next();
     const token = await signSession({ id: session.id, role: session.role, ver: session.ver });
     res.headers.append("Set-Cookie", `${COOKIE}=${token}; ${cookieOptions()}`);
+    res.headers.set("Cache-Control", "private, no-store"); // never let a cache keep a response carrying a session cookie
     return res;
   }
   return NextResponse.next();
