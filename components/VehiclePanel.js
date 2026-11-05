@@ -98,65 +98,45 @@ const TABS = [["status", "Status"], ["run", "Run"], ["block", "Block"]];
 
 const fmtClock = (s) => new Date(s * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 
-// Publish which run this bus is on today (shared with everyone signed in)
-function RunPublisher({ vehicle, me, onChanged }) {
-  const info = vehicle.runInfo;
-  const [editing, setEditing] = useState(!info);
-  const [run, setRun] = useState(info?.run || "");
-  const [operating, setOperating] = useState(false);
+// Operator ID on this bus today. Anyone signed in can set, change or clear it.
+function OperatorEditor({ vehicle, onChanged }) {
+  const info = vehicle.operatorInfo;
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(info?.operatorId || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => { setEditing(!vehicle.runInfo); setRun(vehicle.runInfo?.run || ""); setError(""); }, [vehicle.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setEditing(false); setError(""); }, [vehicle.id]);
+  useEffect(() => { if (!editing) setVal(vehicle.operatorInfo?.operatorId || ""); }, [vehicle.operatorInfo?.operatorId, editing]);
 
-  async function send(method) {
+  async function save(operatorId) {
     setBusy(true); setError("");
     try {
-      const r = await fetch(method === "DELETE" ? `/api/runs?vehicle=${encodeURIComponent(vehicle.label)}` : "/api/runs", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: method === "DELETE" ? undefined : JSON.stringify({ vehicle: vehicle.label, run, operating }),
-      });
+      const r = await fetch("/api/operators", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ vehicle: vehicle.label, operatorId }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error || "Couldn't save that."); return; }
-      setEditing(false); setOperating(false);
+      setEditing(false);
       onChanged?.();
     } catch { setError("Couldn't reach the server."); } finally { setBusy(false); }
   }
 
+  if (!editing) {
+    return (
+      <div className="op-view">
+        {info ? <b>#{info.operatorId}</b> : <span className="muted">Not entered</span>}
+        <button className="op-edit" onClick={() => { setVal(info?.operatorId || ""); setEditing(true); }}>{info ? "Edit" : "Add"}</button>
+        {info && <small className="op-who">Entered by {info.byName || "a user"} at {fmtClock(info.at)}</small>}
+      </div>
+    );
+  }
   return (
-    <div className="pp-section run-pub">
-      <div className="pp-label">Publish run</div>
-      {info && !editing ? (
-        <>
-          <p className="run-pub-who">
-            Run <b>{info.run}</b> published by {info.byName || "a user"} at {fmtClock(info.at)}
-            {info.operatorId ? ` · operator #${info.operatorId}` : ""}
-          </p>
-          <div className="run-pub-actions">
-            <button className="acct-btn" onClick={() => { setRun(info.run); setEditing(true); }}>Change</button>
-            <button className="acct-btn acct-btn--ghost" disabled={busy} onClick={() => send("DELETE")}>Clear</button>
-          </div>
-        </>
-      ) : (
-        <form className="run-pub-form" onSubmit={(e) => { e.preventDefault(); send("POST"); }}>
-          <p className="muted run-pub-help">Which run is bus {vehicle.label} on today? Everyone signed in will see it until the end of the service day.</p>
-          <input value={run} onChange={(e) => setRun(e.target.value.toUpperCase().slice(0, 16))} placeholder="Run number, e.g. 126-1411" aria-label="Run number"
-            autoCapitalize="characters" autoCorrect="off" spellCheck={false} required />
-          <label className={`run-pub-op${me?.operatorId ? "" : " is-disabled"}`}>
-            <input type="checkbox" checked={operating} disabled={!me?.operatorId} onChange={(e) => setOperating(e.target.checked)} />
-            <span>
-              I&apos;m the operator{me?.operatorId ? ` (adds operator #${me.operatorId})` : ""}
-              {!me?.operatorId && <small>Add your operator ID in the menu to use this.</small>}
-            </span>
-          </label>
-          {error && <div className="auth-error" role="alert">{error}</div>}
-          <div className="run-pub-actions">
-            <button className="acct-btn acct-btn--primary" disabled={busy || !run.trim()}>{busy ? "Saving…" : "Publish run"}</button>
-            {info && <button type="button" className="acct-btn" onClick={() => setEditing(false)}>Cancel</button>}
-          </div>
-        </form>
-      )}
-    </div>
+    <form className="op-form" onSubmit={(e) => { e.preventDefault(); save(val); }}>
+      <input value={val} autoFocus onChange={(e) => setVal(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12))} placeholder="Operator ID" aria-label="Operator ID"
+        autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
+      <button className="acct-btn acct-btn--primary" disabled={busy || !val}>Save</button>
+      {info && <button type="button" className="acct-btn acct-btn--ghost" disabled={busy} onClick={() => save("")}>Clear</button>}
+      <button type="button" className="acct-btn" onClick={() => setEditing(false)}>Cancel</button>
+      {error && <div className="auth-error" role="alert">{error}</div>}
+    </form>
   );
 }
 
@@ -225,26 +205,27 @@ export default function VehiclePanel({ vehicle, route, now, onClose, onOpenMap, 
 
       {tab === "block" && (
         <div className="pp-body">
-          <BlockSchedule data={schedule} vehicle={vehicle} now={now} upFor={(d) => d === 0} />
+          <BlockSchedule data={schedule} vehicle={vehicle} now={now} upFor={(d) => d === 0} onRunsChanged={() => { schedule?.reload?.(); onChanged?.(); }} />
         </div>
       )}
 
       {tab === "run" && (
         <div className="pp-body">
           <dl className="pp-props">
-            <dt>Run</dt><dd>{vehicle.run || <span className="muted">Not published</span>}</dd>
+            <dt>Run</dt>
+            <dd>
+              {vehicle.run || <span className="muted">No run set for this part of {vehicle.block ? `block ${vehicle.block}` : "the block"}</span>}
+              {!vehicle.run && vehicle.block && (
+                <button className="op-edit" onClick={() => setTab("block")}>Create one in Block</button>
+              )}
+            </dd>
             <dt>Vehicle</dt><dd>{vehicle.label}</dd>
             <dt>Block</dt><dd>{vehicle.block || <span className="muted">Not available</span>}</dd>
             <dt>Operator</dt>
-            <dd>
-              {vehicle.runInfo?.operatorId
-                ? <>{vehicle.runInfo.operatorName ? `${vehicle.runInfo.operatorName} · ` : ""}#{vehicle.runInfo.operatorId}</>
-                : <span className="muted">Not published</span>}
-            </dd>
+            <dd><OperatorEditor vehicle={vehicle} onChanged={onChanged} /></dd>
             <dt>Trip</dt><dd>{vehicle.trip || "—"}{vehicle.revenue === false ? " (non-revenue)" : ""}</dd>
             <dt>Route pattern</dt><dd>{pattern?.name || <span className="muted">Not available</span>}</dd>
           </dl>
-          <RunPublisher vehicle={vehicle} me={me} onChanged={onChanged} />
         </div>
       )}
 

@@ -1,6 +1,7 @@
 // Block schedule (Skate's "minischedule") + live upcoming-stop predictions for one bus's trip.
 import { blockSchedule, stopName, tripPredictions } from "@/lib/blocks";
-import { serviceDateForTrip } from "@/lib/adherence";
+import { serviceBase, serviceDateForTrip } from "@/lib/adherence";
+import { runDefs, runFor } from "@/lib/runs";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
@@ -23,8 +24,16 @@ export async function GET(req) {
     };
   });
 
+  // Runs defined on this block (from the public schedule)
+  const base = serviceBase(date);
+  const defs = sched?.block ? (await runDefs().catch(() => [])).filter((d) => d.block === sched.block) : [];
+  const trips = (sched?.trips || []).map((t) => {
+    const d = runFor(defs, sched.block, t.start - base);
+    return { ...t, startSecs: t.start - base, ...(d ? { run: d.run, runStart: d.startSecs } : {}) };
+  });
+
   return Response.json(
-    { trip, date, block: sched?.block || null, trips: sched?.trips || [], predictions },
+    { trip, date, block: sched?.block || null, trips, predictions, runs: defs.map(({ run, startSecs, endSecs, byName, at }) => ({ run, startSecs, endSecs, byName, at })) },
     { headers: { "Cache-Control": "private, no-store" } }
   );
 }

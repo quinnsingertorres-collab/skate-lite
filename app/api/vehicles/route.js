@@ -5,7 +5,7 @@
 const MBTA_FEED = process.env.VEHICLES_URL || "https://cdn.mbta.com/realtime/VehiclePositions_enhanced.json";
 import { scheduleInfo } from "@/lib/adherence";
 import { lookupTrips } from "@/lib/mbtaTrips";
-import { todaysRuns } from "@/lib/runs";
+import { runDefs, runFor, todaysOperators, tripStartSecs } from "@/lib/runs";
 import { liveJson } from "@/lib/liveFetch";
 import { AGENCY, SWIFTLY_KEY, swiftlyVehicles } from "@/lib/swiftly";
 
@@ -119,15 +119,6 @@ export async function GET() {
     return rest;
   });
 
-  // Runs published by users today (Swiftly's run, when present, wins)
-  const runs = await todaysRuns().catch(() => ({}));
-  for (const v of vehicles) {
-    const r = runs[v.label];
-    if (!r) continue;
-    if (!v.run) { v.run = r.run; v.runSource = "user"; }
-    v.runInfo = { run: r.run, byName: r.byName || "", at: r.at, ...(r.operatorId ? { operatorId: r.operatorId, operatorName: r.operatorName || "" } : {}) };
-  }
-
   // Trips missing from the schedule index: ask the MBTA V3 API (batched, cached)
   const needBlock = vehicles.filter((v) => !v.block && v.trip);
   if (needBlock.length) {
@@ -144,6 +135,18 @@ export async function GET() {
       }
     }
   }
+  // Runs (user-made from the public schedule; Swiftly's run, when present, wins) and today's operators
+  const [defs, ops] = await Promise.all([runDefs().catch(() => []), todaysOperators().catch(() => ({}))]);
+  for (const v of vehicles) {
+    const d = runFor(defs, v.block, tripStartSecs(v.trip));
+    if (d) {
+      if (!v.run) { v.run = d.run; v.runSource = "schedule"; }
+      v.runDef = { run: d.run, block: d.block, startSecs: d.startSecs, endSecs: d.endSecs };
+    }
+    const o = ops[v.label];
+    if (o) v.operatorInfo = { operatorId: o.operatorId, byName: o.byName || "", at: o.at };
+  }
+
   const error = mbta.status === "rejected" && !sw.vehicles.length ? String(mbta.reason) : null;
   return Response.json(
     {

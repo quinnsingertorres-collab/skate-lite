@@ -31,35 +31,7 @@ function SwiftlyStatus({ swiftly }) {
   );
 }
 
-// Your operator ID (attached to runs you publish as the operator)
-function OperatorId({ me, onMe }) {
-  const [val, setVal] = useState(me?.operatorId || "");
-  const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { setVal(me?.operatorId || ""); }, [me?.operatorId]);
-  async function save(e) {
-    e.preventDefault(); setBusy(true); setMsg("");
-    try {
-      const r = await fetch("/api/auth/me", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operatorId: val }) });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) setMsg(d.error || "Couldn't save.");
-      else { setMsg(d.operatorId ? "Saved." : "Removed."); onMe?.({ ...me, operatorId: d.operatorId }); }
-    } catch { setMsg("Couldn't reach the server."); } finally { setBusy(false); }
-  }
-  return (
-    <form className="mm-op" onSubmit={save}>
-      <label htmlFor="mm-op-input">Operator ID</label>
-      <div className="mm-op-row">
-        <input id="mm-op-input" value={val} onChange={(e) => setVal(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12))}
-          placeholder="e.g. 12345" inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
-        <button className="acct-btn" disabled={busy || val === (me?.operatorId || "")}>Save</button>
-      </div>
-      {msg && <small>{msg}</small>}
-    </form>
-  );
-}
-
-// Account menu (hamburger on phones, avatar on desktop): account, operator ID, live status, refresh, sign out
+// Account menu (hamburger on phones, avatar on desktop): account, live status, refresh, sign out
 function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefresh }) {
   const ref = useRef(null);
   useEffect(() => {
@@ -84,7 +56,6 @@ function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefre
             </div>
           )}
         </div>
-        {me && <OperatorId me={me} onMe={onMe} />}
         <div className="mm-status">
           <span className={`live${stale ? " is-stale" : ""}`}><i />{liveText}</span>
           <SwiftlyStatus swiftly={swiftly} />

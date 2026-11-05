@@ -119,7 +119,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
     if (!q) return [];
     const nameOf = (id) => routes.find((r) => r.id === id)?.name?.toLowerCase() || "";
     return vehicles
-      .filter((v) => String(v.label).toLowerCase().startsWith(q) || (v.run && v.run.toLowerCase().includes(q)) || (v.runInfo?.operatorId && v.runInfo.operatorId.toLowerCase() === q) || (v.block && v.block.toLowerCase().includes(q)) || nameOf(v.route) === q)
+      .filter((v) => String(v.label).toLowerCase().startsWith(q) || (v.run && v.run.toLowerCase().includes(q)) || (v.operatorInfo?.operatorId && v.operatorInfo.operatorId.toLowerCase() === q) || (v.block && v.block.toLowerCase().includes(q)) || nameOf(v.route) === q)
       .slice(0, 40);
   }, [q, vehicles, routes]);
 

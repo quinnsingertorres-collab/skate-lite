@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const clock = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 export const fmtTime = (t) => (t ? clock.format(new Date(t * 1000)) : "—");
@@ -7,6 +7,8 @@ export const fmtTime = (t) => (t ? clock.format(new Date(t * 1000)) : "—");
 /** Fetches the bus's block schedule + live predictions; refreshes every 20s. */
 export function useVehicleSchedule(trip) {
   const [data, setData] = useState(null);
+  const [nonce, setNonce] = useState(0);
+  const lastTrip = useRef(null);
   useEffect(() => {
     if (!trip) { setData(null); return; }
     let dead = false;
@@ -15,12 +17,13 @@ export function useVehicleSchedule(trip) {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => { if (!dead && d) setData(d); })
         .catch(() => {});
-    setData(null);
+    if (lastTrip.current !== trip) { setData(null); lastTrip.current = trip; } // keep showing data on a manual reload
     load();
     const t = setInterval(load, 20000);
     return () => { dead = true; clearInterval(t); };
-  }, [trip]);
-  return data;
+  }, [trip, nonce]);
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
+  return data ? { ...data, reload } : null;
 }
 
 function Tri({ up, className = "" }) {
@@ -119,6 +122,7 @@ function RailIcon({ kind, up, className = "" }) {
         </svg>
       </span>
     );
+  if (kind === "run") return <span className="bs-ic bs-ic--run" />;
   return <span className="bs-ic bs-ic--none" />;
 }
 
@@ -126,7 +130,92 @@ function RailIcon({ kind, up, className = "" }) {
  * Block tab: the whole block as one continuous schedule (Skate's run/block layout):
  * pull out → each trip with its timepoints → layovers between trips → pull in.
  */
-export function BlockSchedule({ data, vehicle, now, upFor }) {
+const tripName = (t) => `${t.route || ""}_${t.variant && t.variant !== "_" ? t.variant : ""} ${t.headsign || ""}`.trim();
+
+// Create / edit / delete the runs on this block. Anyone signed in can edit; saved for every day the block runs.
+function RunsEditor({ data, onChanged }) {
+  const trips = data.trips;
+  const [form, setForm] = useState(null); // { run, from, to, replaceStart }
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const runs = (data.runs || []).slice().sort((a, b) => a.startSecs - b.startSecs);
+  const startOf = (secs) => trips.find((t) => t.startSecs === secs);
+  const firstFree = trips.find((t) => !t.run) || trips[0];
+
+  async function save(e) {
+    e.preventDefault(); setBusy(true); setError("");
+    try {
+      const r = await fetch("/api/rundefs", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run: form.run, fromTrip: form.from, toTrip: form.to, replaceStart: form.replaceStart ?? null }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setError(d.error || "Couldn't save that run."); return; }
+      setForm(null); onChanged?.();
+    } catch { setError("Couldn't reach the server."); } finally { setBusy(false); }
+  }
+  async function remove(def) {
+    setBusy(true); setError("");
+    try {
+      const r = await fetch(`/api/rundefs?block=${encodeURIComponent(data.block)}&start=${def.startSecs}`, { method: "DELETE" });
+      if (!r.ok) { setError("Couldn't delete that run."); return; }
+      onChanged?.();
+    } catch { setError("Couldn't reach the server."); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="bs-runs">
+      <div className="bs-runs-head">
+        <span>Runs on this block</span>
+        {!form && data.block && (
+          <button className="acct-btn" onClick={() => { setError(""); setForm({ run: "", from: firstFree.trip, to: trips[trips.length - 1].trip }); }}>Create a run</button>
+        )}
+      </div>
+      {!runs.length && !form && <p className="muted bs-runs-empty">No runs yet. Create one from this block&apos;s trips; it&apos;ll show on whichever bus works them, every day this block runs.</p>}
+      {runs.length > 0 && (
+        <ul className="bs-runs-list">
+          {runs.map((d) => {
+            const a = startOf(d.startSecs), b = startOf(d.endSecs);
+            return (
+              <li key={d.startSecs}>
+                <b>Run {d.run}</b>
+                <span className="muted">{a ? fmtTime(a.start) : "?"} – {b ? fmtTime(b.end) : "?"}{d.byName ? ` · by ${d.byName}` : ""}</span>
+                <span className="bs-runs-btns">
+                  <button className="op-edit" disabled={busy} onClick={() => { setError(""); setForm({ run: d.run, from: a?.trip || trips[0].trip, to: b?.trip || trips[trips.length - 1].trip, replaceStart: d.startSecs }); }}>Edit</button>
+                  <button className="op-edit op-edit--danger" disabled={busy} onClick={() => remove(d)}>Delete</button>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {form && (
+        <form className="bs-run-form" onSubmit={save}>
+          <label><span>Run number</span>
+            <input value={form.run} autoFocus required onChange={(e) => setForm({ ...form, run: e.target.value.toUpperCase().slice(0, 16) })} placeholder="e.g. 126-1411"
+              autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
+          </label>
+          <label><span>First trip</span>
+            <select value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })}>
+              {trips.map((t) => <option key={t.trip} value={t.trip}>{fmtTime(t.start)} · {tripName(t)}{t.run && t.runStart !== form.replaceStart ? ` (run ${t.run})` : ""}</option>)}
+            </select>
+          </label>
+          <label><span>Last trip</span>
+            <select value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })}>
+              {trips.map((t) => <option key={t.trip} value={t.trip}>{fmtTime(t.start)} · {tripName(t)}{t.run && t.runStart !== form.replaceStart ? ` (run ${t.run})` : ""}</option>)}
+            </select>
+          </label>
+          {error && <div className="auth-error" role="alert">{error}</div>}
+          <div className="bs-run-actions">
+            <button className="acct-btn acct-btn--primary" disabled={busy || !form.run.trim()}>{busy ? "Saving…" : form.replaceStart != null ? "Save run" : "Create run"}</button>
+            <button type="button" className="acct-btn" onClick={() => { setForm(null); setError(""); }}>Cancel</button>
+          </div>
+        </form>
+      )}
+      {error && !form && <div className="auth-error" role="alert">{error}</div>}
+    </div>
+  );
+}
+
+export function BlockSchedule({ data, vehicle, now, upFor, onRunsChanged }) {
   const [showPast, setShowPast] = useState(false);
   if (!data) return <p className="ms-empty">Loading block…</p>;
   if (!data.trips.length) return <p className="ms-empty">No schedule found for this trip.</p>;
@@ -149,7 +238,10 @@ export function BlockSchedule({ data, vehicle, now, upFor }) {
       const gap = t.start - trips[i - 1].end;
       if (gap > 0) rows.push({ key: `lay-${t.trip}`, kind: "none", title: gap >= 45 * 60 ? "Break" : "Layover", time: hm(gap), cls: `bs-row--layover is-${i <= curIdx ? "past" : "future"}` });
     }
-    const name = `${t.route || ""}_${t.variant && t.variant !== "_" ? t.variant : ""} ${t.headsign || ""}`.trim();
+    const name = tripName(t);
+    // Run boundary: a run starts here (or the list starts partway into a run)
+    const prevShown = rows.some((r) => r.kind === "trip");
+    if (t.run && (t.runStart === t.startSecs || !prevShown)) rows.push({ key: `run-${t.trip}`, kind: "run", title: `Run ${t.run}`, time: "", cls: "bs-row--run" });
     rows.push({ key: t.trip, kind: "trip", up, title: name, time: fmtTime(t.start), cls: `bs-row--trip is-${state}`, current: state === "current", status });
     for (const tp of t.timepoints) {
       const passed = state === "past" || (state === "current" && nextSeq != null && tp.seq < nextSeq);
@@ -166,6 +258,7 @@ export function BlockSchedule({ data, vehicle, now, upFor }) {
         <dt>Layovers</dt><dd>{hm(layover)}</dd>
         <dt>Total hours</dt><dd>{hm(span)}</dd>
       </dl>
+      <RunsEditor data={data} onChanged={onRunsChanged} />
       <div className="bs-cols"><span>Departure point</span><span>Scheduled departure</span></div>
       {curIdx > 0 && (
         <button className="bs-past" onClick={() => setShowPast((s) => !s)}>
