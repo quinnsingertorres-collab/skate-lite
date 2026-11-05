@@ -219,7 +219,7 @@ export default function Home() {
 
   return (
     <div className="app">
-      <TopNav title={view === "ladders" ? (t.current?.title && t.current.title !== "Untitled" ? t.current.title : "Route Ladders") : VIEW_LABELS[view]} liveText={liveText} stale={stale} onRefresh={poll} me={me} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
+      <TopNav title={view === "ladders" ? (t.current?.title && t.current.title !== "Untitled" ? t.current.title : "Route Ladders") : VIEW_LABELS[view]} liveText={liveText} stale={stale} onRefresh={poll} me={me} onMe={setMe} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
       <LeftNav view={view} onView={setView} collapsed={navCollapsed} onCollapse={collapseNav} />
 
       <main className="content">
@@ -293,6 +293,8 @@ export default function Home() {
           now={now}
           onClose={() => { setPanelOpen(false); setSelVehicleId(null); }}
           onOpenMap={() => { setPanelOpen(false); setView("map"); }}
+          me={me}
+          onChanged={poll}
         />
       )}
     </div>

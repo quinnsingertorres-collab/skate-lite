@@ -119,7 +119,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
     if (!q) return [];
     const nameOf = (id) => routes.find((r) => r.id === id)?.name?.toLowerCase() || "";
     return vehicles
-      .filter((v) => String(v.label).toLowerCase().startsWith(q) || (v.run && v.run.toLowerCase().includes(q)) || (v.block && v.block.toLowerCase().includes(q)) || nameOf(v.route) === q)
+      .filter((v) => String(v.label).toLowerCase().startsWith(q) || (v.run && v.run.toLowerCase().includes(q)) || (v.runInfo?.operatorId && v.runInfo.operatorId.toLowerCase() === q) || (v.block && v.block.toLowerCase().includes(q)) || nameOf(v.route) === q)
       .slice(0, 40);
   }, [q, vehicles, routes]);
 
@@ -167,7 +167,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
             </ul>
           </div>
         )}
-        {!q && <p className="search-tip">Search by bus number (e.g. 1920){vehicles.some((v) => v.run) ? ", run" : ""} or route, or tap a bus on the map.</p>}
+        {!q && <p className="search-tip">Search by bus number (e.g. 1920){vehicles.some((v) => v.run) ? ", run, operator ID" : ""} or route, or tap a bus on the map.</p>}
       </div>
       <div className="search-map-area">
         <div className="search-map-canvas" ref={el} />

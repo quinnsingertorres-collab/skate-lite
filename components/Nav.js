@@ -31,8 +31,36 @@ function SwiftlyStatus({ swiftly }) {
   );
 }
 
-// Phone menu (hamburger): account, live status, refresh, sign out
-function MobileMenu({ open, onClose, me, liveText, stale, swiftly, onRefresh }) {
+// Your operator ID (attached to runs you publish as the operator)
+function OperatorId({ me, onMe }) {
+  const [val, setVal] = useState(me?.operatorId || "");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setVal(me?.operatorId || ""); }, [me?.operatorId]);
+  async function save(e) {
+    e.preventDefault(); setBusy(true); setMsg("");
+    try {
+      const r = await fetch("/api/auth/me", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operatorId: val }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) setMsg(d.error || "Couldn't save.");
+      else { setMsg(d.operatorId ? "Saved." : "Removed."); onMe?.({ ...me, operatorId: d.operatorId }); }
+    } catch { setMsg("Couldn't reach the server."); } finally { setBusy(false); }
+  }
+  return (
+    <form className="mm-op" onSubmit={save}>
+      <label htmlFor="mm-op-input">Operator ID</label>
+      <div className="mm-op-row">
+        <input id="mm-op-input" value={val} onChange={(e) => setVal(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12))}
+          placeholder="e.g. 12345" inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
+        <button className="acct-btn" disabled={busy || val === (me?.operatorId || "")}>Save</button>
+      </div>
+      {msg && <small>{msg}</small>}
+    </form>
+  );
+}
+
+// Account menu (hamburger on phones, avatar on desktop): account, operator ID, live status, refresh, sign out
+function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefresh }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -56,6 +84,7 @@ function MobileMenu({ open, onClose, me, liveText, stale, swiftly, onRefresh }) 
             </div>
           )}
         </div>
+        {me && <OperatorId me={me} onMe={onMe} />}
         <div className="mm-status">
           <span className={`live${stale ? " is-stale" : ""}`}><i />{liveText}</span>
           <SwiftlyStatus swiftly={swiftly} />
@@ -67,7 +96,7 @@ function MobileMenu({ open, onClose, me, liveText, stale, swiftly, onRefresh }) 
   );
 }
 
-export function TopNav({ liveText, stale, onRefresh, swiftly, me, title }) {
+export function TopNav({ liveText, stale, onRefresh, swiftly, me, onMe, title }) {
   const [menu, setMenu] = useState(false);
   return (
     <header className="top-nav">
@@ -83,9 +112,9 @@ export function TopNav({ liveText, stale, onRefresh, swiftly, me, title }) {
           <RefreshIcon size={20} />
         </button>
         {me && (
-          <button className="avatar" onClick={signOut} title={`Signed in as ${me.name ? `${me.name} (${me.id})` : me.id}. Click to sign out.`} aria-label="Sign out">
+          <button className="avatar" onClick={() => setMenu(true)} title={`Signed in as ${me.name ? `${me.name} (${me.id})` : me.id}`} aria-label="Account menu">
             <span className="avatar-id">{initial(me)}</span>
-            <span className="avatar-out">Sign out</span>
+            <span className="avatar-out">Account</span>
           </button>
         )}
       </div>
@@ -98,7 +127,7 @@ export function TopNav({ liveText, stale, onRefresh, swiftly, me, title }) {
       <button className={`top-mob-btn top-mob${stale ? " is-stale" : ""}`} onClick={onRefresh} aria-label="Refresh data">
         <RefreshIcon size={22} />
       </button>
-      <MobileMenu open={menu} onClose={() => setMenu(false)} me={me} liveText={liveText} stale={stale} swiftly={swiftly} onRefresh={onRefresh} />
+      <MobileMenu open={menu} onClose={() => setMenu(false)} me={me} onMe={onMe} liveText={liveText} stale={stale} swiftly={swiftly} onRefresh={onRefresh} />
     </header>
   );
 }

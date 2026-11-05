@@ -668,3 +668,21 @@ ul { list-style: none; margin: 0; padding: 0; }
 .acct-id-btn { font: inherit; font-weight: 700; letter-spacing: .5px; font-variant-numeric: tabular-nums; padding: 2px 6px; margin: -2px -6px; border-radius: 4px; border-bottom: 1px dashed var(--gray-400); }
 .acct-id-btn:hover:not(:disabled) { background: var(--gray-100); }
 .acct-id-input { width: 9.5em; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Operator ID (account menu) */
+.mm-op { display: flex; flex-direction: column; gap: 6px; padding: 4px 4px 12px; border-bottom: 1px solid var(--gray-200); margin-bottom: 6px; }
+.mm-op label { font-size: 12px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: .3px; }
+.mm-op-row { display: flex; gap: 8px; }
+.mm-op-row input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid var(--gray-400); border-radius: 6px; font: inherit; font-size: 15px; background: var(--white); color: var(--font-dark); }
+.mm-op small { font-size: 12px; color: var(--gray-600); }
+@media (min-width: 801px) and (min-height: 501px) { .mm { left: auto; right: 0; box-shadow: -4px 0 20px rgba(0,0,0,.18); } }
+/* Publish run (vehicle panel, Run tab) */
+.run-pub-form { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.run-pub-form input[aria-label="Run number"] { height: 40px; padding: 0 12px; border: 1px solid var(--gray-400); border-radius: 6px; font: inherit; font-size: 15px; letter-spacing: .3px; background: var(--white); color: var(--font-dark); }
+.run-pub-help { margin: 0; font-size: 13px; }
+.run-pub-op { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.run-pub-op input { margin-top: 3px; }
+.run-pub-op small { display: block; font-size: 12px; color: var(--gray-500); }
+.run-pub-op.is-disabled { color: var(--gray-500); }
+.run-pub-actions { display: flex; gap: 8px; margin-top: 4px; }
+.run-pub-who { margin: 4px 0 8px; font-size: 14px; }
+.run-pub .auth-error { margin: 0; }

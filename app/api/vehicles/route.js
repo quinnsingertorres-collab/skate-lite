@@ -5,6 +5,7 @@
 const MBTA_FEED = process.env.VEHICLES_URL || "https://cdn.mbta.com/realtime/VehiclePositions_enhanced.json";
 import { scheduleInfo } from "@/lib/adherence";
 import { lookupTrips } from "@/lib/mbtaTrips";
+import { todaysRuns } from "@/lib/runs";
 import { liveJson } from "@/lib/liveFetch";
 import { AGENCY, SWIFTLY_KEY, swiftlyVehicles } from "@/lib/swiftly";
 
@@ -117,6 +118,15 @@ export async function GET() {
     }
     return rest;
   });
+
+  // Runs published by users today (Swiftly's run, when present, wins)
+  const runs = await todaysRuns().catch(() => ({}));
+  for (const v of vehicles) {
+    const r = runs[v.label];
+    if (!r) continue;
+    if (!v.run) { v.run = r.run; v.runSource = "user"; }
+    v.runInfo = { run: r.run, byName: r.byName || "", at: r.at, ...(r.operatorId ? { operatorId: r.operatorId, operatorName: r.operatorName || "" } : {}) };
+  }
 
   // Trips missing from the schedule index: ask the MBTA V3 API (batched, cached)
   const needBlock = vehicles.filter((v) => !v.block && v.trip);
