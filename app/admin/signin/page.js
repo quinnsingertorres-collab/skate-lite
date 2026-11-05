@@ -37,18 +37,18 @@ export default function AdminSignIn() {
       <div className="auth-card">
         <div className="auth-logo" aria-label="skate lite admin">skate<span>admin</span></div>
         <h1>Admin sign-in</h1>
-        <p className="auth-sub">For managing ID numbers and approving accounts. This is separate from the app sign-in.</p>
+        <p className="auth-sub">Use the ADMIN_ID and ADMIN_PASSWORD you set in Vercel (not a regular app ID). This is separate from the app sign-in.</p>
 
         {error && <div className="auth-error" role="alert">{error}</div>}
 
         <form onSubmit={submit} className="auth-form">
           <label>
             <span>Admin ID</span>
-            <input value={id} onChange={(e) => setId(e.target.value.trim())} autoComplete="username" required autoFocus />
+            <input value={id} onChange={(e) => setId(e.target.value.trim())} autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required autoFocus />
           </label>
           <label>
             <span>Admin password</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
           </label>
           <button className="auth-submit" disabled={busy}>{busy ? "Please wait…" : "Sign in to admin"}</button>
         </form>

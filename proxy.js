@@ -12,7 +12,7 @@ const PUBLIC_PATHS = [
 ];
 
 async function adminVersion() {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(process.env.ADMIN_PASSWORD || ""));
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode((process.env.ADMIN_PASSWORD || "").trim()));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
 }
 
@@ -43,7 +43,7 @@ export async function proxy(req) {
   // ---- Admin panel: admin cookie only
   if (pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin/") || pathname === "/api/swiftly-check") {
     const s = await verifySession(req.cookies.get(ADMIN_COOKIE)?.value);
-    const ok = s && s.role === "admin" && s.id === (process.env.ADMIN_ID || "").trim() && s.ver === (await adminVersion());
+    const ok = s && s.role === "admin" && String(s.id).toLowerCase() === (process.env.ADMIN_ID || "").trim().toLowerCase() && s.ver === (await adminVersion());
     return ok ? NextResponse.next() : deny(req, { admin: true });
   }
 
