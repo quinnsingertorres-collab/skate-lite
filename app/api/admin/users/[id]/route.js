@@ -1,12 +1,12 @@
 import { json, requireAdmin } from "@/lib/authServer";
-import { cleanId, deleteUser, getUser, renameUser, resetUser, setStatus } from "@/lib/users";
+import { changeId, cleanId, deleteUser, getUser, renameUser, resetUser, setStatus } from "@/lib/users";
 
 export const runtime = "nodejs";
 
 export async function PATCH(req, { params }) {
   if (!(await requireAdmin(req))) return json({ error: "Admins only" }, 403);
   const id = cleanId((await params).id);
-  const { action, name } = await req.json().catch(() => ({}));
+  const { action, name, newId } = (await req.json().catch(() => null)) || {};
   try {
     const u = await getUser(id);
     if (!u) return json({ error: "No such ID" }, 404);
@@ -15,6 +15,7 @@ export async function PATCH(req, { params }) {
     else if (action === "disable" || action === "reject") user = await setStatus(id, "disabled");
     else if (action === "reset") user = await resetUser(id);
     else if (action === "rename") user = await renameUser(id, name);
+    else if (action === "changeId") user = await changeId(id, newId);
     else return json({ error: "Unknown action" }, 400);
     return json({ user });
   } catch (e) {

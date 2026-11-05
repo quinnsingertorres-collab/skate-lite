@@ -13,10 +13,32 @@ const SECTIONS = [
 function Row({ u, act, busyId }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editingId, setEditingId] = useState(false);
   const busy = busyId === u.id;
+  const doneId = (val) => {
+    setEditingId(false);
+    const v = String(val || "").replace(/\D/g, "");
+    if (v && v !== u.id) act(u.id, "changeId", { newId: v });
+  };
   return (
     <tr>
-      <td className="acct-id">{u.id}</td>
+      <td className="acct-id">
+        {editingId ? (
+          <input
+            className="acct-name-input acct-id-input"
+            defaultValue={u.id}
+            autoFocus
+            inputMode="numeric"
+            maxLength={10}
+            aria-label={`New ID for ${u.name || u.id}`}
+            onFocus={(e) => e.target.select()}
+            onBlur={(e) => doneId(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = u.id; setEditingId(false); } }}
+          />
+        ) : (
+          <button className="acct-id-btn" onClick={() => setEditingId(true)} title="Click to change this ID number" disabled={busy}>{u.id}</button>
+        )}
+      </td>
       <td>
         {editing ? (
           <input
@@ -24,7 +46,7 @@ function Row({ u, act, busyId }) {
             defaultValue={u.name}
             autoFocus
             maxLength={60}
-            onBlur={(e) => { setEditing(false); if (e.target.value !== u.name) act(u.id, "rename", e.target.value); }}
+            onBlur={(e) => { setEditing(false); if (e.target.value !== u.name) act(u.id, "rename", { name: e.target.value }); }}
             onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditing(false); }}
           />
         ) : (
@@ -78,6 +100,7 @@ export default function Admin() {
   const [newName, setNewName] = useState("");
   const [created, setCreated] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -112,17 +135,18 @@ export default function Admin() {
     load();
   }
 
-  async function act(id, action, name) {
-    setBusyId(id); setError("");
+  async function act(id, action, extra = {}) {
+    setBusyId(id); setError(""); setNotice("");
     const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
       method: action === "delete" ? "DELETE" : "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: action === "delete" ? undefined : JSON.stringify({ action, name }),
+      body: action === "delete" ? undefined : JSON.stringify({ action, ...extra }),
     });
     const d = await r.json().catch(() => ({}));
+    await load(); // reload first: it clears old errors, so set this action's message after
     if (!r.ok) setError(d.error || "That didn't work.");
+    else if (action === "changeId") setNotice(`ID ${id} is now ${d.user?.id}. Let ${d.user?.name || "them"} know: they'll need to sign in again with the new ID (same password).`);
     setBusyId(null);
-    load();
   }
 
   const pendingCount = users?.filter((u) => u.status === "pending").length || 0;
@@ -139,7 +163,7 @@ export default function Admin() {
 
       <section className="acct-card">
         <h2>Create an ID number</h2>
-        <p className="muted">Give the ID to the person. They choose their own password on the sign-in page (“Set up your account”), then you approve them here.</p>
+        <p className="muted">Click an ID number in the lists below to change it. Give the ID to the person. They choose their own password on the sign-in page (“Set up your account”), then you approve them here.</p>
         <form className="acct-create" onSubmit={create}>
           <label>
             <span>Name (optional)</span>
@@ -160,6 +184,7 @@ export default function Admin() {
       </section>
 
       {error && <div className="auth-error" role="alert">{error}</div>}
+      {notice && <div className="auth-notice" role="status">{notice}</div>}
 
       {SECTIONS.map((s) => {
         const list = (users || []).filter((u) => u.status === s.status);

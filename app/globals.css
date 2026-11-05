@@ -663,3 +663,8 @@ ul { list-style: none; margin: 0; padding: 0; }
   :root { --bottom-h: 48px; }
   .bottom-nav-link .bn-icon { width: 40px; height: 30px; }
 }
+
+/* Admin: click an ID to change it */
+.acct-id-btn { font: inherit; font-weight: 700; letter-spacing: .5px; font-variant-numeric: tabular-nums; padding: 2px 6px; margin: -2px -6px; border-radius: 4px; border-bottom: 1px dashed var(--gray-400); }
+.acct-id-btn:hover:not(:disabled) { background: var(--gray-100); }
+.acct-id-input { width: 9.5em; font-weight: 700; font-variant-numeric: tabular-nums; }
