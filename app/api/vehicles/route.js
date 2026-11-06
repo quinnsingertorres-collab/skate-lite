@@ -6,6 +6,8 @@ const MBTA_FEED = process.env.VEHICLES_URL || "https://cdn.mbta.com/realtime/Veh
 import { scheduleInfo } from "@/lib/adherence";
 import { lookupTrips } from "@/lib/mbtaTrips";
 import { runDefs, runFor, todaysOperators, tripStartSecs } from "@/lib/runs";
+import { canUseRoster, readRoster, todaysAssignments } from "@/lib/roster";
+import { getSession } from "@/lib/authServer";
 import { liveJson } from "@/lib/liveFetch";
 import { AGENCY, SWIFTLY_KEY, swiftlyVehicles } from "@/lib/swiftly";
 
@@ -50,7 +52,7 @@ async function mbtaVehicles() {
   return out;
 }
 
-export async function GET() {
+export async function GET(req) {
   const [mbta, swiftly] = await Promise.allSettled([mbtaVehicles(), swiftlyVehicles()]);
   const base = mbta.status === "fulfilled" ? mbta.value : [];
   const sw = swiftly.status === "fulfilled" ? swiftly.value : { status: "error", detail: String(swiftly.reason), vehicles: [] };
@@ -136,7 +138,12 @@ export async function GET() {
     }
   }
   // Runs (user-made from the public schedule; Swiftly's run, when present, wins) and today's operators
-  const [defs, ops] = await Promise.all([runDefs().catch(() => []), todaysOperators().catch(() => ({}))]);
+  const [defs, ops, assigned, session] = await Promise.all([
+    runDefs().catch(() => []), todaysOperators().catch(() => ({})), todaysAssignments().catch(() => ({})), getSession(req).catch(() => null),
+  ]);
+  const showNames = await canUseRoster(session).catch(() => false); // operator names only for roster access
+  const rosterOps = showNames ? (await readRoster().catch(() => ({ operators: {} }))).operators : {};
+  const rosterName = (id) => rosterOps[id]?.name || "";
   for (const v of vehicles) {
     const d = runFor(defs, v.block, tripStartSecs(v.trip));
     if (d) {
@@ -144,7 +151,11 @@ export async function GET() {
       v.runDef = { id: d.id, run: d.run };
     }
     const o = ops[v.label];
+    const a = d ? assigned[d.id] : null;
     if (o) v.operatorInfo = { operatorId: o.operatorId, byName: o.byName || "", at: o.at };
+    else if (a) v.operatorInfo = { operatorId: a.operatorId, source: "schedule" };
+    const nameFor = v.operatorInfo && showNames ? (assigned[d?.id]?.operatorId === v.operatorInfo.operatorId ? assigned[d.id].name : rosterName(v.operatorInfo.operatorId)) : "";
+    if (nameFor) v.operatorInfo.name = nameFor;
   }
 
   const error = mbta.status === "rejected" && !sw.vehicles.length ? String(mbta.reason) : null;

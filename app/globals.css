@@ -734,3 +734,54 @@ dd .op-edit { margin-left: 8px; }
 .sp-title { font-size: 22px; font-weight: 600; }
 .sp-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; }
 .sp-live { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+/* Operators & schedules */
+.acct-tag { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 9px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; background: var(--eggplant-100); color: var(--eggplant-600); vertical-align: 2px; }
+.ro { padding: 12px 16px 24px; gap: 10px; }
+.ro-note { margin: 0; font-size: 12px; }
+.ro-top, .ro-form { display: flex; flex-wrap: wrap; gap: 8px; }
+.ro input, .ro select { height: 40px; padding: 0 10px; border: 1px solid var(--gray-400); border-radius: 6px; font: inherit; font-size: 15px; background: var(--white); color: var(--font-dark); min-width: 0; }
+.ro-top input { flex: 1; }
+.ro-form input { flex: 1 1 140px; }
+.ro-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--gray-300); border-radius: 8px; overflow: hidden; }
+.ro-list li + li { border-top: 1px solid var(--gray-200); }
+.ro-list li.is-open { background: var(--gray-50); }
+.ro-row { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; text-align: left; }
+.ro-name { font-size: 15px; }
+.ro-today { font-size: 13px; color: var(--gray-600); }
+.ro-detail { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.ro-sched { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.ro-sched label { display: flex; flex-direction: column; gap: 3px; }
+.ro-sched label span { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+.ro-sched label.is-today span { color: var(--eggplant-500); }
+.ro-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ro .auth-error { margin: 0; }
+/* Run builder: building blocks */
+.bb { --k-report: #8d8a99; --k-garage: #465863; --k-trips: #7b4bc4; --k-deadhead: #c9861a; --k-break: #3f9a52; --k-done: #6f6c7b; }
+.bb-palette { display: flex; flex-wrap: wrap; gap: 8px; }
+.bb-chip { padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; color: #fff; background: var(--kc); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+.bb-chip:active { transform: translateY(1px); box-shadow: none; }
+.k-report { --kc: var(--k-report); } .k-garage { --kc: var(--k-garage); } .k-trips { --kc: var(--k-trips); }
+.k-deadhead { --kc: var(--k-deadhead); } .k-break { --kc: var(--k-break); } .k-done { --kc: var(--k-done); }
+.bb-empty { margin: 0; font-size: 13px; }
+.bb-stack { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bb-card { border: 1px solid var(--gray-300); border-left: 8px solid var(--kc); border-radius: 8px; background: var(--white); padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
+.bb-card-head { display: flex; align-items: center; gap: 8px; }
+.bb-card-kind { font-weight: 800; font-size: 14px; color: var(--kc); text-transform: uppercase; letter-spacing: .3px; min-width: 0; }
+.bb-card-head input[type=time] { height: 34px; width: 9.5em; flex: 0 0 auto; }
+.bb-card-head { flex-wrap: wrap; }
+.bb-card-time { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+.bb-card-tools { margin-left: auto; display: inline-flex; gap: 2px; }
+.bb-card-tools button { width: 32px; height: 32px; border-radius: 6px; color: var(--gray-600); font-size: 13px; }
+.bb-card-tools button:hover:not(:disabled) { background: var(--gray-100); }
+.bb-card-tools button:disabled { opacity: .3; }
+.bb-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bb-line > input, .bb-line > label { flex: 1 1 140px; }
+.bb-line label { display: flex; flex-direction: column; gap: 3px; }
+.bb-line label span { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+.bb-line .bb-mins { flex: 0 0 5em; }
+.bb-check { display: inline-flex !important; flex: 0 0 auto !important; flex-direction: row !important; align-items: center; gap: 6px; font-size: 14px; }
+.bb-check input { height: auto; }
+.bb-small { margin: 0; font-size: 13px; color: var(--gray-600); }
+.bb-warn { margin: 0; font-size: 12px; color: var(--err-fg); }
+.bb-summary { border-radius: 8px; border-bottom: 0; }
+.bb .auth-error { margin: 0; }

@@ -51,9 +51,16 @@ async function loadZip() {
 const round = (n) => Math.round(n * 1e5) / 1e5;
 
 async function main() {
-  const want = ["routes.txt", "route_patterns.txt", "directions.txt", "stops.txt", "checkpoints.txt", "trips.txt", "stop_times.txt", "shapes.txt", "calendar.txt", "calendar_dates.txt"];
+  const want = ["routes.txt", "route_patterns.txt", "directions.txt", "stops.txt", "checkpoints.txt", "trips.txt", "stop_times.txt", "shapes.txt", "calendar.txt", "calendar_dates.txt", "feed_info.txt"];
   const files = unzipSync(new Uint8Array(await loadZip()), { filter: (f) => want.includes(f.name) });
   const txt = (n) => strFromU8(files[n]);
+
+  // Which MBTA schedule season this is (e.g. "Fall 2026"). Runs, the operator roster and
+  // operator schedules are kept per season and reset when a new season's schedule arrives.
+  let rating = "", feedInfo = {};
+  try { feedInfo = [...rows(txt("feed_info.txt"))][0] || {}; rating = String(feedInfo.feed_version || "").split(",")[0].trim(); } catch {}
+  if (!rating) rating = feedInfo.feed_start_date || "unknown";
+  console.log(`[data] schedule season: ${rating}`);
 
   // Routes
   const routes = [];
@@ -246,6 +253,8 @@ async function main() {
   fs.mkdirSync(GEN, { recursive: true });
   fs.writeFileSync(path.join(GEN, "schedule.json"), JSON.stringify({
     built: feedVersion,
+    rating,
+    feedVersion: feedInfo.feed_version || "",
     cps: cpIds,
     cpNames: cpIds.map((c) => cpNames.get(c) || c),
     strs: strIds,

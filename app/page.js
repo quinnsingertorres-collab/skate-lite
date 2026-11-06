@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Ladder from "@/components/Ladder";
 import VehiclePanel from "@/components/VehiclePanel";
 import SchedulePanel from "@/components/SchedulePanel";
+import RosterPanel from "@/components/RosterPanel";
 import RoutePicker from "@/components/RoutePicker";
 import SearchMap from "@/components/SearchMap";
 import LateView from "@/components/LateView";
@@ -102,6 +103,7 @@ export default function Home() {
   const [selVehicleId, setSelVehicleId] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [schedTarget, setSchedTarget] = useState(null); // block/run opened from the schedule
+  const [rosterOpen, setRosterOpen] = useState(false);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [view, setView] = useState("ladders");
   const [pickerOpen, setPickerOpen] = useState(true);
@@ -221,7 +223,7 @@ export default function Home() {
 
   return (
     <div className="app">
-      <TopNav title={view === "ladders" ? (t.current?.title && t.current.title !== "Untitled" ? t.current.title : "Route Ladders") : VIEW_LABELS[view]} liveText={liveText} stale={stale} onRefresh={poll} me={me} onMe={setMe} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
+      <TopNav title={view === "ladders" ? (t.current?.title && t.current.title !== "Untitled" ? t.current.title : "Route Ladders") : VIEW_LABELS[view]} liveText={liveText} stale={stale} onRefresh={poll} me={me} onMe={setMe} onOpenRoster={() => { setPanelOpen(false); setSchedTarget(null); setRosterOpen(true); }} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
       <LeftNav view={view} onView={setView} collapsed={navCollapsed} onCollapse={collapseNav} />
 
       <main className="content">
@@ -288,6 +290,12 @@ export default function Home() {
 
       <BottomNav view={view} onView={setView} />
 
+      {rosterOpen && (
+        <>
+          <div className="pp-dim" onClick={() => setRosterOpen(false)} />
+          <RosterPanel vehicles={feed.vehicles} onClose={() => setRosterOpen(false)} onOpenVehicle={(v) => { setRosterOpen(false); openVehicle(v); }} onChanged={poll} />
+        </>
+      )}
       {schedTarget && !panelOpen && (
         <>
           <div className="pp-dim" onClick={() => setSchedTarget(null)} />

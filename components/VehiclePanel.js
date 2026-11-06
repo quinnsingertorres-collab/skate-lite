@@ -108,6 +108,7 @@ function OperatorEditor({ vehicle, onChanged }) {
   const [error, setError] = useState("");
   useEffect(() => { setEditing(false); setError(""); }, [vehicle.id]);
   useEffect(() => { if (!editing) setVal(vehicle.operatorInfo?.operatorId || ""); }, [vehicle.operatorInfo?.operatorId, editing]);
+  const fromSchedule = info?.source === "schedule";
 
   async function save(operatorId) {
     setBusy(true); setError("");
@@ -123,9 +124,9 @@ function OperatorEditor({ vehicle, onChanged }) {
   if (!editing) {
     return (
       <div className="op-view">
-        {info ? <b>#{info.operatorId}</b> : <span className="muted">Not entered</span>}
+        {info ? <b>{info.name ? `${info.name} · ` : ""}#{info.operatorId}</b> : <span className="muted">Not entered</span>}
         <button className="op-edit" onClick={() => { setVal(info?.operatorId || ""); setEditing(true); }}>{info ? "Edit" : "Add"}</button>
-        {info && <small className="op-who">Entered by {info.byName || "a user"} at {fmtClock(info.at)}</small>}
+        {info && <small className="op-who">{info.source === "schedule" ? "From the operator schedule for this run today" : `Entered by ${info.byName || "a user"} at ${fmtClock(info.at)}`}</small>}
       </div>
     );
   }
@@ -134,7 +135,7 @@ function OperatorEditor({ vehicle, onChanged }) {
       <input value={val} autoFocus onChange={(e) => setVal(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12))} placeholder="Operator ID" aria-label="Operator ID"
         autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
       <button className="acct-btn acct-btn--primary" disabled={busy || !val}>Save</button>
-      {info && <button type="button" className="acct-btn acct-btn--ghost" disabled={busy} onClick={() => save("")}>Clear</button>}
+      {info && !fromSchedule && <button type="button" className="acct-btn acct-btn--ghost" disabled={busy} onClick={() => save("")}>Clear</button>}
       <button type="button" className="acct-btn" onClick={() => setEditing(false)}>Cancel</button>
       {error && <div className="auth-error" role="alert">{error}</div>}
     </form>

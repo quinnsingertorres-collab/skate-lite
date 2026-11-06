@@ -53,6 +53,7 @@ function Row({ u, act, busyId, adminLabel }) {
         ) : (
           <button className="acct-name" onClick={() => setEditing(true)} title="Click to rename">{u.name || <span className="muted">Add name</span>}</button>
         )}
+        {u.roster === "1" && <span className="acct-tag">Roster</span>}
       </td>
       <td className="acct-date hide-sm">
         {u.status === "pending" ? `Requested ${when(u.requestedAt)}` : u.status === "approved" ? (u.lastLogin ? `Last sign-in ${when(u.lastLogin)}` : `Approved ${when(u.approvedAt)}`) : `Created ${when(u.createdAt)}`}
@@ -68,6 +69,9 @@ function Row({ u, act, busyId, adminLabel }) {
           <>
             <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "reset")} title="Clears the password so they can set a new one (needs approval again)">Reset password</button>
             <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "disable")}>Disable</button>
+            {u.roster === "1"
+              ? <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "revokeRoster")}>Remove roster access</button>
+              : <button className="acct-btn" disabled={busy} onClick={() => act(u.id, "grantRoster")} title="Can see and edit operator names, IDs and schedules">Give roster access</button>}
           </>
         )}
         {u.status === "disabled" && (

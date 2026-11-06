@@ -85,122 +85,171 @@ export function RunSchedule({ data, vehicle, upFor, children }) {
   );
 }
 
-// ---- Builder ----------------------------------------------------------------
+// ---- Builder: building blocks ------------------------------------------------
+// The run is a stack of blocks you tap in from the palette: Report, Pull out, Trips, Deadhead,
+// Break, Pull back, Done. Each block is a card you can edit in place, move up/down or remove.
+// Times fill in from the block before; trips come from any block in the public schedule.
 
-const toHHMM = (secs) => { const m = Math.round(secs / 60); return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
+const toHHMM = (secs) => { if (secs == null) return ""; const m = Math.round(secs / 60); return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
 // Times before 3 AM belong to the end of the service day (after midnight)
 const fromHHMM = (v) => { const [h, m] = String(v).split(":").map(Number); if (!Number.isFinite(h) || !Number.isFinite(m)) return null; const s = h * 3600 + m * 60; return s < 3 * 3600 ? s + 86400 : s; };
+
+const to12 = (secs) => { if (secs == null) return ""; const m = Math.round(secs / 60), h = Math.floor(m / 60) % 24; return `${h % 12 || 12}:${String(m % 60).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
+
+const KINDS = [
+  { type: "report", label: "Report", cls: "k-report" },
+  { type: "pullout", label: "Pull out", cls: "k-garage" },
+  { type: "trips", label: "Trips", cls: "k-trips" },
+  { type: "deadhead", label: "Deadhead", cls: "k-deadhead" },
+  { type: "break", label: "Break", cls: "k-break" },
+  { type: "pullback", label: "Pull back", cls: "k-garage" },
+  { type: "done", label: "Done", cls: "k-done" },
+];
+const kindOf = (t) => KINDS.find((k) => k.type === t);
+let uid = 0;
+const newKey = () => `b${Date.now().toString(36)}${uid++}`;
+
+/** When a block starts and ends (seconds of service day), or null if unknown yet. */
+const startOf = (b) => (b.type === "trips" ? b.startSecs ?? null : b.secs ?? null);
+const endOf = (b) => (b.type === "trips" ? b._end ?? b.endSecs ?? null : b.type === "break" ? (b.secs ?? 0) + (b.mins || 0) * 60 : b.secs ?? null);
 
 function useBlockTrips(block) {
   const [state, setState] = useState({ block: null, trips: null, error: "" });
   useEffect(() => {
-    if (!block) return;
+    if (!block) { setState({ block: null, trips: null, error: "" }); return; }
     let dead = false;
     setState({ block, trips: null, error: "" });
     fetch(`/api/block?block=${encodeURIComponent(block)}`).then((r) => r.json().then((d) => ({ ok: r.ok, d })))
-      .then(({ ok, d }) => { if (!dead) setState(ok ? { block, trips: d.trips, base: d.trips[0] ? d.trips[0].start - d.trips[0].startSecs : 0, error: "" } : { block, trips: [], error: d.error || "Couldn't load that block." }); })
+      .then(({ ok, d }) => { if (!dead) setState(ok ? { block, trips: d.trips, error: "" } : { block, trips: [], error: d.error || "Couldn't load that block." }); })
       .catch(() => { if (!dead) setState({ block, trips: [], error: "Couldn't reach the server." }); });
     return () => { dead = true; };
   }, [block]);
   return state;
 }
 
-function TripsAdder({ defaultBlock, defaultFrom, onAdd }) {
-  const [blockInput, setBlockInput] = useState(defaultBlock || "");
-  const [block, setBlock] = useState(defaultBlock || "");
-  const bt = useBlockTrips(block);
-  const [from, setFrom] = useState(null), [to, setTo] = useState(null);
+function TripsCard({ b, onChange, defaultFrom }) {
+  const [input, setInput] = useState(b.block || "");
+  const bt = useBlockTrips(b.block);
+  // Pick sensible first/last trips once the block loads; keep the card's own label/end in sync
   useEffect(() => {
     if (!bt.trips?.length) return;
-    const f = bt.trips.find((t) => t.startSecs === defaultFrom) || bt.trips[0];
-    setFrom(f.startSecs); setTo(bt.trips[bt.trips.length - 1].startSecs);
+    const from = b.startSecs ?? (bt.trips.find((t) => t.startSecs === defaultFrom) || bt.trips[0]).startSecs;
+    const to = b.endSecs ?? bt.trips[bt.trips.length - 1].startSecs;
+    sync(from, to);
   }, [bt.trips]); // eslint-disable-line react-hooks/exhaustive-deps
+  function sync(from, to) {
+    const ts = (bt.trips || []).filter((t) => t.startSecs >= from && t.startSecs <= to);
+    const base = bt.trips?.[0] ? bt.trips[0].start - bt.trips[0].startSecs : 0;
+    onChange({ ...b, startSecs: from, endSecs: to, _end: ts.length ? ts[ts.length - 1].end - base : undefined,
+      _label: ts.length ? `${ts.length} trip${ts.length === 1 ? "" : "s"} · ${tripName(ts[0])}${ts.length > 1 ? " …" : ""}` : "" });
+  }
   const opt = (t) => <option key={t.trip} value={t.startSecs}>{fmtTime(t.start)} · {tripName(t)}</option>;
   return (
-    <div className="rb-box">
-      <div className="rb-box-title">Add trips from a block</div>
-      <div className="rb-row">
-        <input value={blockInput} onChange={(e) => setBlockInput(e.target.value.toUpperCase().trim())} placeholder="Block, e.g. C01-31" aria-label="Block"
-          autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
-        <button type="button" className="acct-btn" onClick={() => setBlock(blockInput)} disabled={!blockInput}>Load</button>
+    <>
+      <div className="bb-line">
+        <input value={input} onChange={(e) => setInput(e.target.value.toUpperCase().trim())} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onChange({ ...b, block: input, startSecs: undefined, endSecs: undefined }); } }}
+          placeholder="Block, e.g. C01-31" aria-label="Block" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
+        <button type="button" className="acct-btn" disabled={!input || input === b.block} onClick={() => onChange({ ...b, block: input, startSecs: undefined, endSecs: undefined })}>Load</button>
       </div>
       {bt.error && <div className="auth-error">{bt.error}</div>}
-      {block && !bt.trips && <p className="muted">Loading block…</p>}
+      {b.block && !bt.trips && <p className="muted bb-small">Loading block {b.block}…</p>}
       {bt.trips?.length > 0 && (
         <>
-          <label><span>First trip</span><select value={from ?? ""} onChange={(e) => setFrom(Number(e.target.value))}>{bt.trips.map(opt)}</select></label>
-          <label><span>Last trip</span><select value={to ?? ""} onChange={(e) => setTo(Number(e.target.value))}>{bt.trips.map(opt)}</select></label>
-          <button type="button" className="acct-btn acct-btn--primary" disabled={from == null || to == null || to < from}
-            onClick={() => onAdd({ type: "trips", block: bt.block, startSecs: from, endSecs: to },
-              bt.trips.filter((t) => t.startSecs >= from && t.startSecs <= to))}>
-            {to < from ? "Last trip is before the first" : "Add these trips"}
-          </button>
+          <div className="bb-line">
+            <label><span>From</span><select value={b.startSecs ?? ""} onChange={(e) => sync(Number(e.target.value), Math.max(Number(e.target.value), b.endSecs ?? 0))}>{bt.trips.map(opt)}</select></label>
+          </div>
+          <div className="bb-line">
+            <label><span>To</span><select value={b.endSecs ?? ""} onChange={(e) => sync(b.startSecs ?? 0, Number(e.target.value))}>{bt.trips.filter((t) => t.startSecs >= (b.startSecs ?? 0)).map(opt)}</select></label>
+          </div>
+          {b._label && <p className="bb-small">{b._label}</p>}
         </>
       )}
-    </div>
+    </>
   );
 }
 
-function ActivityAdder({ onAdd, suggestTime }) {
-  const [type, setType] = useState("report");
-  const [time, setTime] = useState(suggestTime || "");
-  const [place, setPlace] = useState("");
-  const [mins, setMins] = useState("30");
-  const [paid, setPaid] = useState(false);
-  useEffect(() => { if (suggestTime) setTime(suggestTime); }, [suggestTime]);
-  const garageish = ["report", "pullout", "pullback", "done", "break"].includes(type);
+function BlockCard({ b, i, n, prevEnd, onChange, onMove, onRemove, defaultFrom }) {
+  const k = kindOf(b.type);
+  const start = startOf(b);
+  const outOfOrder = prevEnd != null && start != null && start < prevEnd - 60;
   return (
-    <div className="rb-box">
-      <div className="rb-box-title">Add an activity</div>
-      <div className="rb-row">
-        <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Activity">
-          <option value="report">Report time</option><option value="pullout">Pull out</option><option value="pullback">Pull back</option>
-          <option value="deadhead">Deadhead</option><option value="break">Break</option><option value="done">Done</option>
-        </select>
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time" />
+    <li className={`bb-card ${k.cls}`}>
+      <div className="bb-card-head">
+        <span className="bb-card-kind">{b.type === "break" ? `Break (${b.paid ? "paid" : "unpaid"})` : k.label}</span>
+        {b.type !== "trips" && (
+          <input type="time" value={toHHMM(b.secs)} onChange={(e) => onChange({ ...b, secs: fromHHMM(e.target.value) })} aria-label={`${k.label} time`} />
+        )}
+        {b.type === "trips" && start != null && <span className="bb-card-time">{to12(start)} – {to12(endOf(b))}</span>}
+        <span className="bb-card-tools">
+          <button type="button" onClick={() => onMove(i, -1)} disabled={i === 0} aria-label="Move up">▲</button>
+          <button type="button" onClick={() => onMove(i, 1)} disabled={i === n - 1} aria-label="Move down">▼</button>
+          <button type="button" onClick={() => onRemove(i)} aria-label="Remove">✕</button>
+        </span>
       </div>
-      {type === "break" && (
-        <div className="rb-row">
-          <input type="number" min="1" max="600" value={mins} onChange={(e) => setMins(e.target.value)} aria-label="Break length in minutes" />
-          <span className="rb-unit">min</span>
-          <label className="rb-check"><input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} /> Paid</label>
+      {b.type === "trips" ? (
+        <TripsCard b={b} onChange={onChange} defaultFrom={defaultFrom} />
+      ) : (
+        <div className="bb-line">
+          <input value={b.place || ""} onChange={(e) => onChange({ ...b, place: e.target.value.slice(0, 50) })}
+            list={b.type === "deadhead" ? undefined : "bb-garages"} placeholder={b.type === "deadhead" ? "From where, e.g. Sullivan Square" : "Where, e.g. Fellsway Garage"} aria-label="Place" />
+          {b.type === "break" && (
+            <>
+              <input type="number" min="1" max="600" value={b.mins ?? 30} onChange={(e) => onChange({ ...b, mins: Number(e.target.value) })} aria-label="Minutes" className="bb-mins" />
+              <span className="bb-small">min</span>
+              <label className="bb-check"><input type="checkbox" checked={!!b.paid} onChange={(e) => onChange({ ...b, paid: e.target.checked })} /> Paid</label>
+            </>
+          )}
         </div>
       )}
-      <input value={place} onChange={(e) => setPlace(e.target.value)} list={garageish ? "rb-garages" : undefined} placeholder={garageish ? "Place, e.g. Fellsway Garage" : "From where, e.g. Sullivan Square"} aria-label="Place" maxLength={50} />
-      <datalist id="rb-garages">{GARAGES.map((g) => <option key={g} value={g} />)}</datalist>
-      <button type="button" className="acct-btn acct-btn--primary" disabled={fromHHMM(time) == null}
-        onClick={() => { onAdd({ type, secs: fromHHMM(time), place, ...(type === "break" ? { mins: Number(mins), paid } : {}) }); setPlace(""); }}>
-        Add {type === "break" ? "break" : LABEL[type].toLowerCase()}
-      </button>
-    </div>
+      {outOfOrder && <p className="bb-warn">This starts before the block above ends.</p>}
+    </li>
   );
 }
 
 export function RunBuilder({ data, vehicle, onDone, onCancel }) {
   const existing = data.runDef;
   const [run, setRun] = useState(existing?.run || "");
-  const [items, setItems] = useState(existing?.items || []);
-  const [labels, setLabels] = useState({}); // trips-piece key -> description
-  const [ends, setEnds] = useState({});     // trips-piece key -> when its last trip ends (secs of day)
+  const [blocks, setBlocks] = useState(() => {
+    const items = (existing?.items || []).map((x) => ({ ...x, key: newKey() }));
+    return items.sort((a, b) => (startOf(a) ?? 0) - (startOf(b) ?? 0));
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const base = data.base || 0;
   const cur = data.trips?.find((t) => t.trip === data.trip);
 
-  const pieceKey = (x) => `${x.block}|${x.startSecs}`;
-  const sorted = useMemo(() => [...items].sort((a, b) => (a.type === "trips" ? a.startSecs : a.secs) - (b.type === "trips" ? b.startSecs : b.secs)), [items]);
-  const lastEnd = sorted.length ? sorted[sorted.length - 1] : null;
-  const suggest = lastEnd ? toHHMM(lastEnd.type === "trips" ? (ends[pieceKey(lastEnd)] ?? lastEnd.endSecs) : lastEnd.secs + (lastEnd.mins || 0) * 60) : "";
+  const firstTrips = blocks.find((b) => b.type === "trips" && b.startSecs != null);
+  const lastEnd = () => { for (let j = blocks.length - 1; j >= 0; j--) { const e = endOf(blocks[j]); if (e != null) return e; } return null; };
 
-  const describe = (x) => {
-    if (x.type === "trips") return labels[pieceKey(x)] || `Block ${x.block} · trips ${fmtTime(base + x.startSecs)} – ${fmtTime(base + x.endSecs)}`;
-    const name = x.type === "break" ? `Break (${x.paid ? "Paid" : "Unpaid"}) ${x.mins} min` : LABEL[x.type];
-    return `${name} · ${fmtTime(base + x.secs)}${x.place ? ` · ${x.place}` : ""}`;
-  };
+  function add(type) {
+    const b = { type, key: newKey() };
+    const end = lastEnd();
+    const firstStart = firstTrips?.startSecs ?? null;
+    if (type === "trips") { b.block = vehicle.block || data.block || ""; if (blocks.some((x) => x.type === "trips")) b.block = ""; }
+    else if (type === "report") b.secs = firstStart != null ? firstStart - 30 * 60 : null;
+    else if (type === "pullout") { const rep = blocks.find((x) => x.type === "report"); b.secs = rep?.secs != null ? rep.secs + 15 * 60 : firstStart != null ? firstStart - 15 * 60 : null; }
+    else if (type === "done") b.secs = end != null ? end + 15 * 60 : null;
+    else b.secs = end;
+    if (type === "break") { b.mins = 30; b.paid = false; }
+    if (["pullout", "pullback", "report", "done", "break"].includes(type)) b.place = blocks.find((x) => x.place && /garage/i.test(x.place))?.place || "";
+    // Report and pull out go at the top; everything else stacks at the bottom
+    if (type === "report") setBlocks([b, ...blocks]);
+    else if (type === "pullout") { const at = blocks[0]?.type === "report" ? 1 : 0; setBlocks([...blocks.slice(0, at), b, ...blocks.slice(at)]); }
+    else setBlocks([...blocks, b]);
+  }
+  const change = (i) => (nb) => setBlocks((bs) => bs.map((x, j) => (j === i ? nb : x)));
+  const move = (i, d) => setBlocks((bs) => { const a = [...bs]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
+  const remove = (i) => setBlocks((bs) => bs.filter((_, j) => j !== i));
+
+  // Live totals, like the run summary
+  const known = blocks.filter((b) => startOf(b) != null && endOf(b) != null);
+  const total = known.length ? Math.max(...known.map(endOf)) - Math.min(...known.map(startOf)) : 0;
+  const brk = (paid) => blocks.filter((b) => b.type === "break" && !!b.paid === paid).reduce((a, b) => a + (b.mins || 0) * 60, 0);
+  const ready = run.trim() && blocks.some((b) => b.type === "trips" && b.block && b.startSecs != null) && blocks.every((b) => (b.type === "trips" ? b.block && b.startSecs != null : b.secs != null));
 
   async function save() {
     setBusy(true); setError("");
+    const items = blocks.map(({ key, _end, _label, ...x }) => x);
     try {
       const r = await fetch("/api/rundefs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: existing?.id, run, items }) });
       const d = await r.json().catch(() => ({}));
@@ -208,7 +257,7 @@ export function RunBuilder({ data, vehicle, onDone, onCancel }) {
       onDone();
     } catch { setError("Couldn't reach the server."); } finally { setBusy(false); }
   }
-  async function remove() {
+  async function del() {
     setBusy(true); setError("");
     try {
       const r = await fetch(`/api/rundefs?id=${encodeURIComponent(existing.id)}`, { method: "DELETE" });
@@ -218,42 +267,44 @@ export function RunBuilder({ data, vehicle, onDone, onCancel }) {
   }
 
   return (
-    <div className="rb">
+    <div className="rb bb">
       <div className="rb-head">{existing ? `Edit run ${existing.run}` : "Build a run"}</div>
-      <p className="muted rb-help">A run is the operator&apos;s day: pieces of trips from the public schedule plus report time, pull outs, breaks and so on. It shows on whichever bus works its trips, every day those blocks run. Anyone signed in can edit it.</p>
       <label className="rb-field"><span>Run number</span>
         <input value={run} onChange={(e) => setRun(e.target.value.toUpperCase().slice(0, 16))} placeholder="e.g. 126-1411" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
       </label>
 
-      <div className="rb-items">
-        <div className="rb-box-title">In this run</div>
-        {!sorted.length && <p className="muted">Nothing yet. Add trips and activities below.</p>}
-        <ol>
-          {sorted.map((x) => (
-            <li key={x.type === "trips" ? pieceKey(x) : `${x.type}-${x.secs}-${x.place}`} className={x.type === "trips" ? "is-trips" : ""}>
-              <span>{describe(x)}</span>
-              <button type="button" className="op-edit op-edit--danger" onClick={() => setItems(items.filter((y) => y !== x))}>Remove</button>
-            </li>
-          ))}
-        </ol>
+      <div className="bb-palette" role="toolbar" aria-label="Add a block">
+        {KINDS.map((k) => (
+          <button key={k.type} type="button" className={`bb-chip ${k.cls}`} onClick={() => add(k.type)}>+ {k.label}</button>
+        ))}
       </div>
 
-      <TripsAdder defaultBlock={vehicle.block || data.block || ""} defaultFrom={cur ? cur.startSecs : null}
-        onAdd={(piece, trips) => {
-          setItems([...items, piece]);
-          if (trips.length) setEnds({ ...ends, [pieceKey(piece)]: trips[trips.length - 1].end - (trips[0].start - trips[0].startSecs) });
-          if (trips.length) setLabels({ ...labels, [pieceKey(piece)]: `Block ${piece.block} · ${trips.length} trip${trips.length === 1 ? "" : "s"}, ${fmtTime(trips[0].start)} – ${fmtTime(trips[trips.length - 1].end)} (${tripName(trips[0])}${trips.length > 1 ? " …" : ""})` });
-        }} />
-      <ActivityAdder onAdd={(a) => setItems([...items, a])} suggestTime={suggest} />
+      {!blocks.length && <p className="muted bb-empty">Tap blocks above to stack up the operator&apos;s day, e.g. Report → Pull out → Trips → Break → Trips → Pull back → Done.</p>}
+      <ol className="bb-stack">
+        {blocks.map((b, i) => (
+          <BlockCard key={b.key} b={b} i={i} n={blocks.length} prevEnd={i > 0 ? endOf(blocks[i - 1]) : null}
+            onChange={change(i)} onMove={move} onRemove={remove} defaultFrom={cur ? cur.startSecs : null} />
+        ))}
+      </ol>
+      <datalist id="bb-garages">{GARAGES.map((g) => <option key={g} value={g} />)}</datalist>
+
+      {blocks.length > 0 && (
+        <dl className="bs-summary bb-summary">
+          <dt>Paid break</dt><dd>{hm(brk(true))}</dd>
+          <dt>Working hours</dt><dd>{hm(total - brk(false))}</dd>
+          <dt>Total hours</dt><dd>{hm(total)}</dd>
+        </dl>
+      )}
 
       {error && <div className="auth-error" role="alert">{error}</div>}
       <div className="rb-actions">
-        <button className="acct-btn acct-btn--primary" disabled={busy || !run.trim() || !items.some((x) => x.type === "trips")} onClick={save}>{busy ? "Saving…" : "Save run"}</button>
+        <button className="acct-btn acct-btn--primary" disabled={busy || !ready} onClick={save}>{busy ? "Saving…" : "Save run"}</button>
         <button className="acct-btn" onClick={onCancel}>Cancel</button>
         {existing && (confirmDelete
-          ? <button className="acct-btn acct-btn--danger" disabled={busy} onClick={remove}>Confirm delete</button>
+          ? <button className="acct-btn acct-btn--danger" disabled={busy} onClick={del}>Confirm delete</button>
           : <button className="acct-btn acct-btn--ghost" onClick={() => setConfirmDelete(true)}>Delete run</button>)}
       </div>
+      <p className="muted rb-help">Saved for every day these blocks run this schedule season. Anyone signed in can edit it.</p>
     </div>
   );
 }

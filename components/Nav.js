@@ -32,7 +32,7 @@ function SwiftlyStatus({ swiftly }) {
 }
 
 // Account menu (hamburger on phones, avatar on desktop): account, live status, refresh, sign out
-function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefresh }) {
+function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefresh, onOpenRoster }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -60,6 +60,7 @@ function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefre
           <span className={`live${stale ? " is-stale" : ""}`}><i />{liveText}</span>
           <SwiftlyStatus swiftly={swiftly} />
         </div>
+        {me?.roster && <button className="mm-item" onClick={() => { onClose(); onOpenRoster?.(); }}>Operators &amp; schedules</button>}
         <button className="mm-item" onClick={() => { onRefresh(); onClose(); }}><RefreshIcon size={18} /> Refresh data</button>
         <button className="mm-item mm-item--danger" onClick={signOut}>Sign out</button>
       </div>
@@ -67,7 +68,7 @@ function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefre
   );
 }
 
-export function TopNav({ liveText, stale, onRefresh, swiftly, me, onMe, title }) {
+export function TopNav({ liveText, stale, onRefresh, swiftly, me, onMe, title, onOpenRoster }) {
   const [menu, setMenu] = useState(false);
   return (
     <header className="top-nav">
@@ -98,7 +99,7 @@ export function TopNav({ liveText, stale, onRefresh, swiftly, me, onMe, title })
       <button className={`top-mob-btn top-mob${stale ? " is-stale" : ""}`} onClick={onRefresh} aria-label="Refresh data">
         <RefreshIcon size={22} />
       </button>
-      <MobileMenu open={menu} onClose={() => setMenu(false)} me={me} onMe={onMe} liveText={liveText} stale={stale} swiftly={swiftly} onRefresh={onRefresh} />
+      <MobileMenu open={menu} onClose={() => setMenu(false)} me={me} onMe={onMe} onOpenRoster={onOpenRoster} liveText={liveText} stale={stale} swiftly={swiftly} onRefresh={onRefresh} />
     </header>
   );
 }
