@@ -5,6 +5,7 @@ import { SHAPE_STYLE, TILE_OPTS, TILE_URL, stopMarker, vehicleMarkerHtml } from 
 import { VehicleBadge } from "@/components/VehicleGlyph";
 import { CloseIcon, DirectionsIcon, LocateIcon } from "@/components/Icons";
 import { BlockSchedule, UpcomingStops, useVehicleSchedule } from "@/components/Minischedule";
+import { RunBuilder, RunSchedule } from "@/components/RunView";
 
 function distM(aLat, aLon, bLat, bLon) {
   const k = Math.PI / 180;
@@ -149,6 +150,14 @@ export default function VehiclePanel({ vehicle, route, now, onClose, onOpenMap, 
   const headsign = vehicle.headsign || dir?.dest || (vehicle.route ? "" : "Not on a route");
   const pattern = patternFor(route, vehicle);
   const [tab, setTab] = useState("status");
+  const [building, setBuilding] = useState(false);
+  const operatorRow = (
+    <dl className="pp-props pp-props--op">
+      <dt>Operator</dt>
+      <dd><OperatorEditor vehicle={vehicle} onChanged={onChanged} /></dd>
+    </dl>
+  );
+  useEffect(() => { setBuilding(false); }, [vehicle.id]);
   const schedule = useVehicleSchedule(vehicle.trip);
   const near = nearestStop(pattern, vehicle);
   const crowd = CROWD[vehicle.occupancy];
@@ -211,21 +220,35 @@ export default function VehiclePanel({ vehicle, route, now, onClose, onOpenMap, 
 
       {tab === "run" && (
         <div className="pp-body">
-          <dl className="pp-props">
-            <dt>Run</dt>
-            <dd>
-              {vehicle.run || <span className="muted">No run set for this part of {vehicle.block ? `block ${vehicle.block}` : "the block"}</span>}
-              {!vehicle.run && vehicle.block && (
-                <button className="op-edit" onClick={() => setTab("block")}>Create one in Block</button>
+          {building && schedule ? (
+            <RunBuilder data={schedule} vehicle={vehicle} onCancel={() => setBuilding(false)}
+              onDone={() => { setBuilding(false); schedule.reload?.(); onChanged?.(); }} />
+          ) : (
+            <>
+              {!schedule ? (
+                <>{operatorRow}<p className="ms-empty pp-section">Loading run…</p></>
+              ) : schedule.run ? (
+                <>
+                  <RunSchedule data={schedule} vehicle={vehicle} upFor={(d) => d === 0}>
+                    {operatorRow}
+                  </RunSchedule>
+                  <div className="pp-section rb-open"><button className="acct-btn" onClick={() => setBuilding(true)}>Edit run {schedule.run.run}</button></div>
+                </>
+              ) : (
+                <>{operatorRow}<div className="pp-section run-none">
+                  <div className="pp-label">Run</div>
+                  <p>No run has been built for this bus&apos;s trips yet.</p>
+                  {vehicle.trip && schedule.block && <button className="acct-btn acct-btn--primary" onClick={() => setBuilding(true)}>Build a run</button>}
+                </div></>
               )}
-            </dd>
-            <dt>Vehicle</dt><dd>{vehicle.label}</dd>
-            <dt>Block</dt><dd>{vehicle.block || <span className="muted">Not available</span>}</dd>
-            <dt>Operator</dt>
-            <dd><OperatorEditor vehicle={vehicle} onChanged={onChanged} /></dd>
-            <dt>Trip</dt><dd>{vehicle.trip || "—"}{vehicle.revenue === false ? " (non-revenue)" : ""}</dd>
-            <dt>Route pattern</dt><dd>{pattern?.name || <span className="muted">Not available</span>}</dd>
-          </dl>
+              <dl className="pp-props">
+                <dt>Vehicle</dt><dd>{vehicle.label}</dd>
+                <dt>Block</dt><dd>{vehicle.block || <span className="muted">Not available</span>}</dd>
+                <dt>Trip</dt><dd>{vehicle.trip || "—"}{vehicle.revenue === false ? " (non-revenue)" : ""}</dd>
+                <dt>Route pattern</dt><dd>{pattern?.name || <span className="muted">Not available</span>}</dd>
+              </dl>
+            </>
+          )}
         </div>
       )}
 

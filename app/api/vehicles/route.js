@@ -141,7 +141,7 @@ export async function GET() {
     const d = runFor(defs, v.block, tripStartSecs(v.trip));
     if (d) {
       if (!v.run) { v.run = d.run; v.runSource = "schedule"; }
-      v.runDef = { run: d.run, block: d.block, startSecs: d.startSecs, endSecs: d.endSecs };
+      v.runDef = { id: d.id, run: d.run };
     }
     const o = ops[v.label];
     if (o) v.operatorInfo = { operatorId: o.operatorId, byName: o.byName || "", at: o.at };
