@@ -5,7 +5,7 @@ import { SHAPE_STYLE_SELECTED, TILE_OPTS, TILE_URL, stopMarker, vehicleMarkerHtm
 import { VehicleBadge } from "@/components/VehicleGlyph";
 import { CloseIcon, LocateIcon, SearchIcon } from "@/components/Icons";
 
-export default function SearchMap({ vehicles, routes, routeData, selectedId, onSelect }) {
+export default function SearchMap({ vehicles, routes, routeData, selectedId, onSelect, onOpenSchedule }) {
   const el = useRef(null);
   const map = useRef(null);
   const Lref = useRef(null);
@@ -123,6 +123,24 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
       .slice(0, 40);
   }, [q, vehicles, routes]);
 
+  // Blocks and runs from the public schedule (no live bus needed)
+  const [sched, setSched] = useState({ q: "", blocks: [], runs: [], loading: false });
+  useEffect(() => {
+    if (q.length < 2 && !routes.some((r) => r.name.toLowerCase() === q)) { setSched({ q, blocks: [], runs: [], loading: false }); return; }
+    let dead = false;
+    setSched((s) => ({ ...s, loading: true }));
+    const routeIds = routes.filter((r) => r.name.toLowerCase() === q).map((r) => r.id);
+    const t = setTimeout(() => {
+      fetch(`/api/schedule?q=${encodeURIComponent(q)}${routeIds.length ? `&routes=${routeIds.join(",")}` : ""}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : { blocks: [], runs: [] }))
+        .then((d) => { if (!dead) setSched({ q, blocks: d.blocks || [], runs: d.runs || [], loading: false }); })
+        .catch(() => { if (!dead) setSched({ q, blocks: [], runs: [], loading: false }); });
+    }, 250);
+    return () => { dead = true; clearTimeout(t); };
+  }, [q, routes]);
+  const routeName = (id) => routes.find((r) => r.id === id)?.name || id;
+  const clock = (t) => new Date(t * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+
   return (
     <div className="search-map">
       <div className={`search-panel${panelOpen ? "" : " is-collapsed"}`}>
@@ -165,9 +183,38 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
                 );
               })}
             </ul>
+            {(sched.runs.length > 0 || sched.blocks.length > 0 || sched.loading) && (
+              <>
+                <div className="search-results-head">Runs &amp; blocks (schedule) <span>{sched.loading ? "…" : sched.runs.length + sched.blocks.length}</span></div>
+                <ul>
+                  {sched.runs.map((r) => (
+                    <li key={`run-${r.id}`}>
+                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "run", id: r.id })}>
+                        <span className="sched-tag">Run</span>
+                        <span className="result-main">
+                          <span className="result-title"><b>Run {r.run}</b></span>
+                          <span className="result-sub">Blocks {r.blocks.join(", ")}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  {sched.blocks.map((b) => (
+                    <li key={`blk-${b.block}`}>
+                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "block", block: b.block })}>
+                        <span className="sched-tag">Block</span>
+                        <span className="result-main">
+                          <span className="result-title">{b.routes.slice(0, 3).map((r) => <span key={r} className="route-pill">{routeName(r)}</span>)}<b>{b.block}</b></span>
+                          <span className="result-sub">{clock(b.start)} – {clock(b.end)} · {b.trips} trips{vehicles.some((v) => v.block === b.block) ? " · bus on it now" : ""}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         )}
-        {!q && <p className="search-tip">Search by bus number (e.g. 1920){vehicles.some((v) => v.run) ? ", run, operator ID" : ""} or route, or tap a bus on the map.</p>}
+        {!q && <p className="search-tip">Search by bus number (e.g. 1920), block (e.g. C01-31), run, operator ID or route. Blocks and runs come up from the schedule even with no bus on them.</p>}
       </div>
       <div className="search-map-area">
         <div className="search-map-canvas" ref={el} />

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Ladder from "@/components/Ladder";
 import VehiclePanel from "@/components/VehiclePanel";
+import SchedulePanel from "@/components/SchedulePanel";
 import RoutePicker from "@/components/RoutePicker";
 import SearchMap from "@/components/SearchMap";
 import LateView from "@/components/LateView";
@@ -100,6 +101,7 @@ export default function Home() {
   const [feed, setFeed] = useState({ vehicles: [], fetched: null, error: null, sources: {} });
   const [selVehicleId, setSelVehicleId] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [schedTarget, setSchedTarget] = useState(null); // block/run opened from the schedule
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [view, setView] = useState("ladders");
   const [pickerOpen, setPickerOpen] = useState(true);
@@ -279,12 +281,20 @@ export default function Home() {
           <LateView vehicles={feed.vehicles} routes={routes} routeData={routeData} selectedRoutes={selected} selectedId={selVehicleId} onSelect={openVehicle} />
         )}
         {view === "map" && (
-          <SearchMap vehicles={feed.vehicles} routes={routes} routeData={routeData} selectedId={selVehicleId} onSelect={openVehicle} />
+          <SearchMap vehicles={feed.vehicles} routes={routes} routeData={routeData} selectedId={selVehicleId} onSelect={openVehicle}
+            onOpenSchedule={(t) => { setPanelOpen(false); setSchedTarget(t); }} />
         )}
       </main>
 
       <BottomNav view={view} onView={setView} />
 
+      {schedTarget && !panelOpen && (
+        <>
+          <div className="pp-dim" onClick={() => setSchedTarget(null)} />
+          <SchedulePanel target={schedTarget} vehicles={feed.vehicles} routes={routes} onClose={() => setSchedTarget(null)}
+            onOpenVehicle={(v) => { setSchedTarget(null); openVehicle(v); }} />
+        </>
+      )}
       {selVehicle && panelOpen && <div className="pp-dim" onClick={() => { setPanelOpen(false); setSelVehicleId(null); }} />}
       {selVehicle && panelOpen && (
         <VehiclePanel

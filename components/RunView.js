@@ -23,7 +23,8 @@ export function RunSchedule({ data, vehicle, upFor, children }) {
   const run = data.run;
   const items = run.items;
   const sum = summary(items);
-  const curIdx = Math.max(0, items.findIndex((x) => x.type === "trip" && x.trip === data.trip));
+  const found = items.findIndex((x) => x.type === "trip" && x.trip === data.trip);
+  const curIdx = Math.max(0, found); // no current trip: show the whole run, nothing highlighted
   const nextSeq = vehicle.seq ?? null;
   const status = vehicleStatus(vehicle);
 
@@ -37,7 +38,7 @@ export function RunSchedule({ data, vehicle, upFor, children }) {
       if (gap > 0) rows.push({ key: `lay-${x.trip}`, kind: "none", title: "Layover", time: hm(gap), cls: `bs-row--layover${past || i === curIdx ? " is-past" : ""}` });
     }
     if (x.type === "trip") {
-      const here = i === curIdx;
+      const here = i === curIdx && found >= 0;
       const up = upFor(x.dir);
       rows.push({ key: x.trip, kind: "trip", up, title: tripName(x), time: fmtTime(x.start), cls: `bs-row--trip${past ? " is-past" : ""}${here ? ` is-here ${status}` : ""}`, iconCls: here ? status : "" });
       x.timepoints.forEach((tp, j) => {

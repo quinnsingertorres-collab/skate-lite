@@ -156,7 +156,8 @@ export function BlockSchedule({ data, vehicle, now, upFor, onRunsChanged }) {
   if (!data) return <p className="ms-empty">Loading block…</p>;
   if (!data.trips.length) return <p className="ms-empty">No schedule found for this trip.</p>;
   const trips = data.trips;
-  const curIdx = Math.max(0, trips.findIndex((t) => t.trip === data.trip));
+  const found = trips.findIndex((t) => t.trip === data.trip);
+  const curIdx = Math.max(0, found); // no current trip (schedule lookup outside its hours): show the whole day
   const nextSeq = vehicle.seq ?? null;
   const status = vehicleStatus(vehicle);
 
@@ -168,7 +169,7 @@ export function BlockSchedule({ data, vehicle, now, upFor, onRunsChanged }) {
   const rows = [];
   trips.forEach((t, i) => {
     if (i < curIdx && !showPast) return;
-    const state = i < curIdx ? "past" : i === curIdx ? "current" : "future";
+    const state = i < curIdx ? "past" : i === curIdx && found >= 0 ? "current" : "future";
     const up = upFor(t.dir);
     if (i > 0 && (showPast || i > curIdx)) {
       const gap = t.start - trips[i - 1].end;
