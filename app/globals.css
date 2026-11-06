@@ -724,3 +724,5 @@ dd .op-edit { margin-left: 8px; }
 .rb-items li.is-trips span { font-weight: 600; }
 .rb-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .rb .auth-error { margin: 0; }
+.acct-me { margin: 0; font-size: 14px; color: var(--gray-700); display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.acct-me .acct-name { font-weight: 700; }

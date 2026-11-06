@@ -10,8 +10,9 @@ const SECTIONS = [
   { status: "disabled", title: "Disabled", empty: "None." },
 ];
 
-function Row({ u, act, busyId }) {
+function Row({ u, act, busyId, adminLabel }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmMerge, setConfirmMerge] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState(false);
   const busy = busyId === u.id;
@@ -75,6 +76,14 @@ function Row({ u, act, busyId }) {
         {u.status === "invited" && (
           <button className="acct-btn" onClick={() => navigator.clipboard?.writeText(u.id)}>Copy ID</button>
         )}
+        {confirmMerge ? (
+          <>
+            <button className="acct-btn acct-btn--primary" disabled={busy} onClick={() => act(u.id, "mergeIntoAdmin")} title={`Moves this account's presets${u.name ? " and name" : ""} to ${adminLabel}, then removes this account`}>Confirm merge</button>
+            <button className="acct-btn" onClick={() => setConfirmMerge(false)}>Cancel</button>
+          </>
+        ) : (
+          <button className="acct-btn acct-btn--ghost" onClick={() => setConfirmMerge(true)} title={`Fold this account into ${adminLabel}`}>Merge into my login</button>
+        )}
         {confirmDelete ? (
           <>
             <button className="acct-btn acct-btn--danger" disabled={busy} onClick={() => act(u.id, "delete")}>Confirm delete</button>
@@ -101,6 +110,13 @@ export default function Admin() {
   const [created, setCreated] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [notice, setNotice] = useState("");
+  const [me, setMe] = useState(null);
+  const [editingMe, setEditingMe] = useState(false);
+  async function saveMyName(name) {
+    setEditingMe(false);
+    const r = await fetch("/api/admin/me", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+    if (!r.ok) setError("Couldn't save your name."); else load();
+  }
 
   const load = useCallback(async () => {
     try {
@@ -108,7 +124,7 @@ export default function Admin() {
       if (r.status === 401) { window.location.href = "/admin/signin"; return; }
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error || `Couldn't load accounts (error ${r.status}).`); setUsers((u) => u || []); }
-      else { setError(""); setUsers(Array.isArray(d.users) ? d.users : []); }
+      else { setError(""); setUsers(Array.isArray(d.users) ? d.users : []); setMe(d.me || null); }
     } catch {
       setError("Couldn't reach the server. Check your connection.");
       setUsers((u) => u || []);
@@ -145,6 +161,7 @@ export default function Admin() {
     const d = await r.json().catch(() => ({}));
     await load(); // reload first: it clears old errors, so set this action's message after
     if (!r.ok) setError(d.error || "That didn't work.");
+    else if (action === "mergeIntoAdmin") setNotice(`Merged ${id} into your login (${me?.id}). ${d.merged?.moved ? `${d.merged.moved} preset${d.merged.moved === 1 ? "" : "s"} moved. ` : ""}Sign in to skate with ${me?.id} from now on${d.merged?.name ? `; you'll show as ${d.merged.name}` : ""}.`);
     else if (action === "changeId") setNotice(`ID ${id} is now ${d.user?.id}. Let ${d.user?.name || "them"} know: they'll need to sign in again with the new ID (same password).`);
     setBusyId(null);
   }
@@ -158,6 +175,18 @@ export default function Admin() {
           <a href="/" className="admin-back">← Open skate</a>
           <button className="acct-btn" onClick={signOut}>Sign out of admin</button>
         </div>
+        {me && (
+          <div className="acct-me">
+            Signed in as{" "}
+            {editingMe ? (
+              <input className="acct-name-input" defaultValue={me.name} autoFocus maxLength={60} placeholder="Your name"
+                onBlur={(e) => saveMyName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingMe(false); }} />
+            ) : (
+              <button className="acct-name" onClick={() => setEditingMe(true)} title="Click to set your name">{me.name || <span className="muted">Add your name</span>}</button>
+            )}
+            {" "}<span className="muted">· ID {me.id} · this login works for the app and the admin panel</span>
+          </div>
+        )}
         <h1>Accounts{pendingCount ? <span className="acct-badge">{pendingCount} waiting</span> : null}</h1>
       </header>
 
@@ -199,7 +228,7 @@ export default function Admin() {
               <div className="acct-table-wrap">
                 <table className="acct-table">
                   <tbody>
-                    {list.map((u) => <Row key={u.id} u={u} act={act} busyId={busyId} />)}
+                    {list.map((u) => <Row key={u.id} u={u} act={act} busyId={busyId} adminLabel={`${me?.name || "your login"} (${me?.id || "admin"})`} />)}
                   </tbody>
                 </table>
               </div>

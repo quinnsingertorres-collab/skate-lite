@@ -1,5 +1,5 @@
 import { json, requireAdmin } from "@/lib/authServer";
-import { changeId, cleanId, deleteUser, getUser, renameUser, resetUser, setStatus } from "@/lib/users";
+import { changeId, cleanId, deleteUser, getUser, mergeIntoAdmin, renameUser, resetUser, setStatus } from "@/lib/users";
 
 export const runtime = "nodejs";
 
@@ -16,6 +16,7 @@ export async function PATCH(req, { params }) {
     else if (action === "reset") user = await resetUser(id);
     else if (action === "rename") user = await renameUser(id, name);
     else if (action === "changeId") user = await changeId(id, newId);
+    else if (action === "mergeIntoAdmin") return json({ merged: await mergeIntoAdmin(id) });
     else return json({ error: "Unknown action" }, 400);
     return json({ user });
   } catch (e) {

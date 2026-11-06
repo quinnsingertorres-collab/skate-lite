@@ -1,13 +1,13 @@
 import { json, requireAdmin } from "@/lib/authServer";
 import { dbConfigured } from "@/lib/db";
-import { createId, listUsers } from "@/lib/users";
+import { adminId, adminName, createId, listUsers } from "@/lib/users";
 
 export const runtime = "nodejs";
 
 export async function GET(req) {
   if (!(await requireAdmin(req))) return json({ error: "Admins only" }, 403);
   if (!dbConfigured()) return json({ error: "Accounts database isn't connected yet.", users: [] }, 503);
-  return json({ users: await listUsers() });
+  return json({ users: await listUsers(), me: { id: adminId(), name: await adminName() } });
 }
 
 export async function POST(req) {

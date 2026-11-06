@@ -1,7 +1,7 @@
 // Build, edit and delete runs (from the public schedule). Anyone signed in can edit.
 import { getSession, json } from "@/lib/authServer";
 import { dbConfigured } from "@/lib/db";
-import { getUser } from "@/lib/users";
+import { displayName } from "@/lib/users";
 import { deleteRunDef, runDefs, saveRunDef, validateRun } from "@/lib/runs";
 
 export const runtime = "nodejs";
@@ -23,8 +23,7 @@ export async function POST(req) {
   const others = (await runDefs()).filter((d) => d.id !== id);
   const { def, error } = validateRun(body, others);
   if (error) return json({ error }, 400);
-  const u = await getUser(s.id);
-  const saved = await saveRunDef({ ...def, id: id || undefined, by: s.id, byName: u?.name || (s.role === "admin" ? "Admin" : ""), at: Math.floor(Date.now() / 1000) });
+  const saved = await saveRunDef({ ...def, id: id || undefined, by: s.id, byName: await displayName(s).catch(() => ""), at: Math.floor(Date.now() / 1000) });
   return json({ ok: true, def: saved });
 }
 
