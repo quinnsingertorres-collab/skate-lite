@@ -49,6 +49,11 @@ export async function proxy(req) {
 
   // ---- The app: regular account cookie
   const session = await verifySession(req.cookies.get(COOKIE)?.value);
+  // The admin signed in to the app with the admin login: valid while ADMIN_ID/ADMIN_PASSWORD are unchanged
+  if (session?.role === "admin") {
+    const ok = String(session.id).toLowerCase() === (process.env.ADMIN_ID || "").trim().toLowerCase() && session.ver === (await adminVersion());
+    return ok ? NextResponse.next() : deny(req);
+  }
   if (!session || session.role !== "user") return deny(req);
 
   // Every so often, re-confirm the account and roll the cookie forward

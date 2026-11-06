@@ -24,7 +24,7 @@ export async function POST(req) {
   const { def, error } = validateRun(body, others);
   if (error) return json({ error }, 400);
   const u = await getUser(s.id);
-  const saved = await saveRunDef({ ...def, id: id || undefined, by: s.id, byName: u?.name || "", at: Math.floor(Date.now() / 1000) });
+  const saved = await saveRunDef({ ...def, id: id || undefined, by: s.id, byName: u?.name || (s.role === "admin" ? "Admin" : ""), at: Math.floor(Date.now() / 1000) });
   return json({ ok: true, def: saved });
 }
 

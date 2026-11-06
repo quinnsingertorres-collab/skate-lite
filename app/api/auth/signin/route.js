@@ -1,7 +1,7 @@
 import { COOKIE, authConfigured, cookieOptions, signSession } from "@/lib/session";
 import { dbConfigured } from "@/lib/db";
 import { json } from "@/lib/authServer";
-import { checkPassword, cleanId, clearFails, getUser, isAdminLogin, takeAttempt, touchLogin, validId } from "@/lib/users";
+import { adminId, adminVersion, checkPassword, cleanId, clearFails, getUser, isAdminLogin, takeAttempt, touchLogin, validId } from "@/lib/users";
 
 export const runtime = "nodejs";
 const WRONG = "ID number or password is incorrect.";
@@ -15,7 +15,11 @@ export async function POST(req) {
   if (password.length > 200) return json({ error: WRONG }, 401);
 
   // The admin signs in separately at /admin/signin
-  if (isAdminLogin(id, password)) return json({ error: "Admin sign-in is separate. Use the admin sign-in page." }, 403);
+  // The admin login also opens the app (the admin panel still has its own sign-in at /admin/signin)
+  if (isAdminLogin(id, password)) {
+    const token = await signSession({ id: adminId(), role: "admin", ver: adminVersion() });
+    return json({ ok: true, role: "admin" }, 200, { "Set-Cookie": `${COOKIE}=${token}; ${cookieOptions()}` });
+  }
   if (!validId(id)) return json({ error: WRONG }, 401);
   if (!dbConfigured()) return json({ error: "Accounts database isn't connected yet." }, 503);
 

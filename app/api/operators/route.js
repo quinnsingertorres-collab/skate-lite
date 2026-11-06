@@ -17,7 +17,7 @@ export async function POST(req) {
   if (op && !OPERATOR_RE.test(op)) return json({ error: "Operator ID can be letters, numbers and dashes (up to 12)." }, 400);
   if (!op) { await setOperator(vehicle, null); return json({ ok: true, cleared: true }); }
   const u = await getUser(s.id);
-  const entry = { operatorId: op, by: s.id, byName: u?.name || "", at: Math.floor(Date.now() / 1000) };
+  const entry = { operatorId: op, by: s.id, byName: u?.name || (s.role === "admin" ? "Admin" : ""), at: Math.floor(Date.now() / 1000) };
   await setOperator(vehicle, entry);
   return json({ ok: true, ...entry });
 }
