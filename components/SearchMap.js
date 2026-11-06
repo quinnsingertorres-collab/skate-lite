@@ -125,19 +125,26 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
 
   // Blocks and runs from the public schedule (no live bus needed)
   const [sched, setSched] = useState({ q: "", blocks: [], runs: [], loading: false });
+  // Which day's schedule to look up ("" = today). Range comes from the server's schedule calendar.
+  const [day, setDay] = useState("");
+  const [range, setRange] = useState(null);
+  useEffect(() => { fetch("/api/schedule?range=1").then((r) => (r.ok ? r.json() : null)).then((d) => d && setRange(d)).catch(() => {}); }, []);
+  const ymdToInput = (d) => (d ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : "");
+  const inputToYmd = (v) => v.replace(/-/g, "");
+  const shift = (d, n) => { const t = new Date(Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8) + n)); return t.toISOString().slice(0, 10).replace(/-/g, ""); };
   useEffect(() => {
     if (q.length < 2 && !routes.some((r) => r.name.toLowerCase() === q)) { setSched({ q, blocks: [], runs: [], loading: false }); return; }
     let dead = false;
     setSched((s) => ({ ...s, loading: true }));
     const routeIds = routes.filter((r) => r.name.toLowerCase() === q).map((r) => r.id);
     const t = setTimeout(() => {
-      fetch(`/api/schedule?q=${encodeURIComponent(q)}${routeIds.length ? `&routes=${routeIds.join(",")}` : ""}`, { cache: "no-store" })
+      fetch(`/api/schedule?q=${encodeURIComponent(q)}${routeIds.length ? `&routes=${routeIds.join(",")}` : ""}${day ? `&date=${day}` : ""}`, { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : { blocks: [], runs: [] }))
         .then((d) => { if (!dead) setSched({ q, blocks: d.blocks || [], runs: d.runs || [], loading: false }); })
         .catch(() => { if (!dead) setSched({ q, blocks: [], runs: [], loading: false }); });
     }, 250);
     return () => { dead = true; clearTimeout(t); };
-  }, [q, routes]);
+  }, [q, routes, day]);
   const routeName = (id) => routes.find((r) => r.id === id)?.name || id;
   const clock = (t) => new Date(t * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 
@@ -154,6 +161,16 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
           />
           {query && <button onClick={() => setQuery("")} aria-label="Clear search"><CloseIcon size={12} /></button>}
         </label>
+        {range && (
+          <div className="sched-day" role="group" aria-label="Schedule day for blocks and runs">
+            <span>Schedule for</span>
+            <button className={!day ? "is-on" : ""} onClick={() => setDay("")}>Today</button>
+            <button className={day === shift(range.today, -1) ? "is-on" : ""} onClick={() => setDay(shift(range.today, -1))} disabled={shift(range.today, -1) < range.first}>Yesterday</button>
+            <button className={day === shift(range.today, 1) ? "is-on" : ""} onClick={() => setDay(shift(range.today, 1))}>Tomorrow</button>
+            <input type="date" value={ymdToInput(day || range.today)} min={ymdToInput(range.first)} max={ymdToInput(range.last)}
+              onChange={(e) => { const v = inputToYmd(e.target.value); setDay(v && v !== range.today ? v : ""); }} aria-label="Pick a date" />
+          </div>
+        )}
         {q && (
           <div className="search-results">
             <div className="search-results-head">Vehicles <span>{results.length}</span></div>
@@ -185,11 +202,11 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
             </ul>
             {(sched.runs.length > 0 || sched.blocks.length > 0 || sched.loading) && (
               <>
-                <div className="search-results-head">Runs &amp; blocks (schedule) <span>{sched.loading ? "…" : sched.runs.length + sched.blocks.length}</span></div>
+                <div className="search-results-head">Runs &amp; blocks ({day ? new Date(Date.UTC(+day.slice(0, 4), +day.slice(4, 6) - 1, +day.slice(6, 8), 12)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }) : "today"}'s schedule) <span>{sched.loading ? "…" : sched.runs.length + sched.blocks.length}</span></div>
                 <ul>
                   {sched.runs.map((r) => (
                     <li key={`run-${r.id}`}>
-                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "run", id: r.id })}>
+                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "run", id: r.id, date: day || null })}>
                         <span className="sched-tag">Run</span>
                         <span className="result-main">
                           <span className="result-title"><b>Run {r.run}</b></span>
@@ -200,7 +217,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
                   ))}
                   {sched.blocks.map((b) => (
                     <li key={`blk-${b.block}`}>
-                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "block", block: b.block })}>
+                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "block", block: b.block, date: day || null })}>
                         <span className="sched-tag">Block</span>
                         <span className="result-main">
                           <span className="result-title">{b.routes.slice(0, 3).map((r) => <span key={r} className="route-pill">{routeName(r)}</span>)}<b>{b.block}</b></span>

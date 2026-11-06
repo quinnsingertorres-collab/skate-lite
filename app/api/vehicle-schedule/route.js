@@ -28,11 +28,11 @@ export async function GET(req) {
   const base = serviceBase(date);
   const defs = await runDefs().catch(() => []);
   const trips = (sched?.trips || []).map((t) => {
-    const d = sched.block ? runFor(defs, sched.block, t.start - base) : null;
+    const d = sched.block ? runFor(defs, sched.block, t.start - base, t.trip) : null;
     return { ...t, startSecs: t.start - base, ...(d ? { run: d.run, runId: d.id } : {}) };
   });
-  const mine = current && sched?.block ? runFor(defs, sched.block, current.start - base) : null;
-  const blockRuns = defs.filter((d) => pieces(d).some((p) => p.block === sched?.block)).map((d) => {
+  const mine = current && sched?.block ? runFor(defs, sched.block, current.start - base, current.trip) : null;
+  const blockRuns = defs.filter((d) => trips.some((t) => t.runId === d.id)).map((d) => {
     const ps = pieces(d).filter((p) => p.block === sched.block);
     return { id: d.id, run: d.run, startSecs: Math.min(...ps.map((p) => p.startSecs)), endSecs: Math.max(...ps.map((p) => p.endSecs)) };
   });

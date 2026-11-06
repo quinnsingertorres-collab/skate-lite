@@ -145,7 +145,7 @@ export async function GET(req) {
   const rosterOps = showNames ? (await readRoster().catch(() => ({ operators: {} }))).operators : {};
   const rosterName = (id) => rosterOps[id]?.name || "";
   for (const v of vehicles) {
-    const d = runFor(defs, v.block, tripStartSecs(v.trip));
+    const d = runFor(defs, v.block, tripStartSecs(v.trip), v.trip);
     if (d) {
       if (!v.run) { v.run = d.run; v.runSource = "schedule"; }
       v.runDef = { id: d.id, run: d.run };

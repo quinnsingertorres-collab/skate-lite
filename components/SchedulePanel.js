@@ -17,16 +17,18 @@ export default function SchedulePanel({ target, vehicles, routes, onClose, onOpe
   useEffect(() => {
     let dead = false;
     setError(""); setBuilding(false);
-    const url = target.kind === "run" ? `/api/schedule?run=${encodeURIComponent(target.id)}` : `/api/schedule?block=${encodeURIComponent(target.block)}`;
+    const dq = target.date ? `&date=${target.date}` : "";
+    const url = target.kind === "run" ? `/api/schedule?run=${encodeURIComponent(target.id)}${dq}` : `/api/schedule?block=${encodeURIComponent(target.block)}${dq}`;
     fetch(url, { cache: "no-store" })
       .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
       .then(({ ok, d }) => { if (dead) return; if (ok) setData(d); else { setData(null); setError(d.error || "Couldn't load that schedule."); } })
       .catch(() => { if (!dead) setError("Couldn't reach the server."); });
     return () => { dead = true; };
-  }, [target.kind, target.id, target.block, nonce]);
+  }, [target.kind, target.id, target.block, target.date, nonce]);
 
   // Live bus working it right now, if any
-  const live = data
+  const isToday = !target.date;
+  const live = data && isToday
     ? vehicles.filter((v) => (data.kind === "run" ? v.runDef?.id === data.run?.id : v.block === data.block))
     : [];
   const routeName = (id) => routes.find((r) => r.id === id)?.name || id;
@@ -50,7 +52,7 @@ export default function SchedulePanel({ target, vehicles, routes, onClose, onOpe
         <div className="sp-live">
           {data && (live.length
             ? live.map((v) => <button key={v.id} className="acct-btn acct-btn--primary" onClick={() => onOpenVehicle(v)}>Open bus {v.label} (live)</button>)
-            : <span className="muted">No bus is on it right now. Times are from the MBTA schedule.</span>)}
+            : <span className="muted">{isToday ? "No bus is on it right now. Times are from the MBTA schedule." : `Schedule for ${new Date(Date.UTC(+data.date.slice(0, 4), +data.date.slice(4, 6) - 1, +data.date.slice(6, 8), 12)).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}. Runs you build apply every day this block runs.`}</span>)}
         </div>
       </div>
 

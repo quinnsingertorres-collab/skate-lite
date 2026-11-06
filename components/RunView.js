@@ -113,23 +113,23 @@ const newKey = () => `b${Date.now().toString(36)}${uid++}`;
 const startOf = (b) => (b.type === "trips" ? b.startSecs ?? null : b.secs ?? null);
 const endOf = (b) => (b.type === "trips" ? b._end ?? b.endSecs ?? null : b.type === "break" ? (b.secs ?? 0) + (b.mins || 0) * 60 : b.secs ?? null);
 
-function useBlockTrips(block) {
+function useBlockTrips(block, date) {
   const [state, setState] = useState({ block: null, trips: null, error: "" });
   useEffect(() => {
     if (!block) { setState({ block: null, trips: null, error: "" }); return; }
     let dead = false;
     setState({ block, trips: null, error: "" });
-    fetch(`/api/block?block=${encodeURIComponent(block)}`).then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+    fetch(`/api/block?block=${encodeURIComponent(block)}${date ? `&date=${date}` : ""}`).then((r) => r.json().then((d) => ({ ok: r.ok, d })))
       .then(({ ok, d }) => { if (!dead) setState(ok ? { block, trips: d.trips, error: "" } : { block, trips: [], error: d.error || "Couldn't load that block." }); })
       .catch(() => { if (!dead) setState({ block, trips: [], error: "Couldn't reach the server." }); });
     return () => { dead = true; };
-  }, [block]);
+  }, [block, date]);
   return state;
 }
 
-function TripsCard({ b, onChange, defaultFrom }) {
+function TripsCard({ b, onChange, defaultFrom, date }) {
   const [input, setInput] = useState(b.block || "");
-  const bt = useBlockTrips(b.block);
+  const bt = useBlockTrips(b.block, date);
   // Pick sensible first/last trips once the block loads; keep the card's own label/end in sync
   useEffect(() => {
     if (!bt.trips?.length) return;
@@ -168,7 +168,7 @@ function TripsCard({ b, onChange, defaultFrom }) {
   );
 }
 
-function BlockCard({ b, i, n, prevEnd, onChange, onMove, onRemove, defaultFrom }) {
+function BlockCard({ b, i, n, prevEnd, onChange, onMove, onRemove, defaultFrom, date }) {
   const k = kindOf(b.type);
   const start = startOf(b);
   const outOfOrder = prevEnd != null && start != null && start < prevEnd - 60;
@@ -187,7 +187,7 @@ function BlockCard({ b, i, n, prevEnd, onChange, onMove, onRemove, defaultFrom }
         </span>
       </div>
       {b.type === "trips" ? (
-        <TripsCard b={b} onChange={onChange} defaultFrom={defaultFrom} />
+        <TripsCard b={b} onChange={onChange} defaultFrom={defaultFrom} date={date} />
       ) : (
         <div className="bb-line">
           <input value={b.place || ""} onChange={(e) => onChange({ ...b, place: e.target.value.slice(0, 50) })}
@@ -263,7 +263,7 @@ export function RunBuilder({ data, vehicle, onDone, onCancel }) {
     setBusy(true); setError("");
     const items = blocks.map(({ key, _end, _label, ...x }) => x);
     try {
-      const r = await fetch("/api/rundefs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: existing?.id, run, items }) });
+      const r = await fetch("/api/rundefs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: existing?.id, run, items, date: data.date }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error || "Couldn't save the run."); return; }
       onDone();
@@ -298,7 +298,7 @@ export function RunBuilder({ data, vehicle, onDone, onCancel }) {
       <ol className="bb-stack">
         {blocks.map((b, i) => (
           <BlockCard key={b.key} b={b} i={i} n={blocks.length} prevEnd={i > 0 ? endOf(blocks[i - 1]) : null}
-            onChange={change(i)} onMove={move} onRemove={remove} defaultFrom={cur ? cur.startSecs : null} />
+            onChange={change(i)} onMove={move} onRemove={remove} defaultFrom={cur ? cur.startSecs : null} date={data.date} />
         ))}
       </ol>
       <datalist id="bb-garages">{GARAGES.map((g) => <option key={g} value={g} />)}</datalist>
