@@ -1,7 +1,7 @@
 "use client";
 // Run tab: a run laid out like Skate (summary + one continuous timeline), and a builder
 // for making runs from the public schedule: pieces of trips plus activities.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RailIcon, fmtTime, hm, tripName, vehicleStatus } from "@/components/Minischedule";
 
 const LABEL = { report: "Report time", pullout: "Pull out", pullback: "Pull back", deadhead: "Deadhead", done: "Done" };
@@ -209,6 +209,7 @@ function BlockCard({ b, i, n, prevEnd, onChange, onMove, onRemove, defaultFrom }
 export function RunBuilder({ data, vehicle, onDone, onCancel }) {
   const existing = data.runDef;
   const [run, setRun] = useState(existing?.run || "");
+  const [autoName, setAutoName] = useState(!existing); // keep suggesting until the user types their own
   const [blocks, setBlocks] = useState(() => {
     const items = (existing?.items || []).map((x) => ({ ...x, key: newKey() }));
     return items.sort((a, b) => (startOf(a) ?? 0) - (startOf(b) ?? 0));
@@ -219,6 +220,17 @@ export function RunBuilder({ data, vehicle, onDone, onCancel }) {
   const cur = data.trips?.find((t) => t.trip === data.trip);
 
   const firstTrips = blocks.find((b) => b.type === "trips" && b.startSecs != null);
+  const nameBlock = blocks.find((b) => b.type === "trips" && b.block)?.block || vehicle.block || data.block || "";
+  const suggest = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/rundefs?suggest=1&block=${encodeURIComponent(nameBlock)}`, { cache: "no-store" });
+      const d = await r.json();
+      if (d.run) setRun(d.run);
+    } catch {}
+  }, [nameBlock]);
+  // New runs get a random MBTA-style number for their garage; re-suggest if the first block's garage changes
+  const garage = nameBlock.match(/^[A-Z]/i)?.[0] || "";
+  useEffect(() => { if (autoName) suggest(); }, [garage, autoName]); // eslint-disable-line react-hooks/exhaustive-deps
   const lastEnd = () => { for (let j = blocks.length - 1; j >= 0; j--) { const e = endOf(blocks[j]); if (e != null) return e; } return null; };
 
   function add(type) {
@@ -270,7 +282,10 @@ export function RunBuilder({ data, vehicle, onDone, onCancel }) {
     <div className="rb bb">
       <div className="rb-head">{existing ? `Edit run ${existing.run}` : "Build a run"}</div>
       <label className="rb-field"><span>Run number</span>
-        <input value={run} onChange={(e) => setRun(e.target.value.toUpperCase().slice(0, 16))} placeholder="e.g. 126-1411" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
+        <div className="bb-line">
+          <input value={run} onChange={(e) => { setAutoName(false); setRun(e.target.value.toUpperCase().slice(0, 16)); }} placeholder="e.g. 126-1411" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
+          <button type="button" className="acct-btn" onClick={suggest} title="Pick another random run number for this garage">New number</button>
+        </div>
       </label>
 
       <div className="bb-palette" role="toolbar" aria-label="Add a block">

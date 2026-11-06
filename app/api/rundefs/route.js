@@ -2,14 +2,19 @@
 import { getSession, json } from "@/lib/authServer";
 import { dbConfigured } from "@/lib/db";
 import { displayName } from "@/lib/users";
-import { deleteRunDef, runDefs, saveRunDef, validateRun } from "@/lib/runs";
+import { deleteRunDef, runDefs, saveRunDef, suggestRunNumber, validateRun } from "@/lib/runs";
 
 export const runtime = "nodejs";
 
 export async function GET(req) {
   const s = await getSession(req);
   if (!s) return json({ error: "Sign in required" }, 401);
-  const id = new URL(req.url).searchParams.get("id");
+  const q = new URL(req.url).searchParams;
+  if (q.get("suggest")) {
+    const taken = new Set((await runDefs()).map((d) => d.run));
+    return json({ run: suggestRunNumber(String(q.get("block") || ""), taken) });
+  }
+  const id = q.get("id");
   const def = (await runDefs()).find((d) => d.id === id);
   return def ? json({ def }) : json({ error: "No such run" }, 404);
 }

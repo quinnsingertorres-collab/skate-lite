@@ -11,7 +11,7 @@ function OperatorForm({ initial, onSave, onCancel, busy }) {
   const [name, setName] = useState(initial?.name || "");
   return (
     <form className="ro-form" onSubmit={(e) => { e.preventDefault(); onSave({ operatorId: id, name, oldId: initial?.operatorId }); }}>
-      <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="Name" aria-label="Operator name" autoFocus={!initial} />
+      <input value={name} onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 60))} placeholder="NAME" aria-label="Operator name" autoFocus={!initial} />
       <input value={id} onChange={(e) => setId(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12))} placeholder="Operator ID" aria-label="Operator ID"
         autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
       <button className="acct-btn acct-btn--primary" disabled={busy || !id || !name.trim()}>{initial ? "Save" : "Add operator"}</button>
@@ -116,7 +116,7 @@ export default function RosterPanel({ vehicles, onClose, onOpenVehicle, onChange
                   <OperatorForm initial={o} onSave={saveOp} onCancel={() => setEditing(null)} busy={busy} />
                 ) : (
                   <button className="ro-row" onClick={() => setOpen(isOpen ? null : o.operatorId)} aria-expanded={isOpen}>
-                    <span className="ro-name"><b>{o.name}</b> <span className="muted">#{o.operatorId}</span></span>
+                    <span className="ro-name"><b>{(o.name || "").toUpperCase()}</b> <span className="muted">#{o.operatorId}</span></span>
                     <span className="ro-today">{todayRun ? `Today: Run ${runName.get(todayRun) || "?"}` : "Off today"}{bus ? ` · bus ${bus.label}` : ""}</span>
                   </button>
                 )}

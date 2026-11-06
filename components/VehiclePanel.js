@@ -124,7 +124,7 @@ function OperatorEditor({ vehicle, onChanged }) {
   if (!editing) {
     return (
       <div className="op-view">
-        {info ? <b>{info.name ? `${info.name} · ` : ""}#{info.operatorId}</b> : <span className="muted">Not entered</span>}
+        {info ? <b>{info.name ? `${info.name.toUpperCase()} · ` : ""}#{info.operatorId}</b> : <span className="muted">Not entered</span>}
         <button className="op-edit" onClick={() => { setVal(info?.operatorId || ""); setEditing(true); }}>{info ? "Edit" : "Add"}</button>
         {info && <small className="op-who">{info.source === "schedule" ? "From the operator schedule for this run today" : `Entered by ${info.byName || "a user"} at ${fmtClock(info.at)}`}</small>}
       </div>

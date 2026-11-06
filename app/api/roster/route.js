@@ -28,7 +28,7 @@ export async function POST(req) {
   const { s, res } = await gate(req); if (res) return res;
   const body = (await req.json().catch(() => null)) || {};
   const operatorId = String(body.operatorId || "").trim().toUpperCase();
-  const name = String(body.name || "").trim().slice(0, 60);
+  const name = String(body.name || "").trim().toUpperCase().slice(0, 60); // operator names are always in caps
   if (!OPERATOR_ID_RE.test(operatorId)) return json({ error: "Operator ID can be letters, numbers and dashes (up to 12)." }, 400);
   if (!name) return json({ error: "Enter the operator's name." }, 400);
   const { operators, schedules } = await readRoster();

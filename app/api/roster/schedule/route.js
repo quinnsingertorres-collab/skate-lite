@@ -27,7 +27,7 @@ export async function POST(req) {
   for (const [other, sch] of Object.entries(schedules)) {
     if (other === id) continue;
     for (const d of DAYS) if (days[d] && sch?.days?.[d] === days[d]) {
-      return json({ error: `Run ${runs.get(days[d])} on ${d[0].toUpperCase() + d.slice(1)} is already ${operators[other]?.name || "#" + other}'s.` }, 409);
+      return json({ error: `Run ${runs.get(days[d])} on ${d[0].toUpperCase() + d.slice(1)} is already ${(operators[other]?.name || "#" + other).toUpperCase()}'s.` }, 409);
     }
   }
   await saveSchedule(id, days, { by: s.id, byName: await displayName(s).catch(() => ""), at: Math.floor(Date.now() / 1000) });
