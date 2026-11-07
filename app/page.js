@@ -9,6 +9,7 @@ import { setLabelMode } from "@/lib/labels";
 import RoutePicker from "@/components/RoutePicker";
 import SearchMap from "@/components/SearchMap";
 import LateView from "@/components/LateView";
+import SwingsView from "@/components/SwingsView";
 import { BottomNav, LeftNav, TopNav, VIEW_LABELS } from "@/components/Nav";
 import { CloseIcon, PlusIcon, SaveIcon } from "@/components/Icons";
 import { useLadderTabs } from "@/lib/useLadderTabs";
@@ -16,7 +17,7 @@ import { useLadderTabs } from "@/lib/useLadderTabs";
 const NAV_KEY = "skate-lite:nav-collapsed";
 const PICKER_KEY = "skate-lite:picker-open"; // remembered on this device
 const POLL_MS = 10000;
-const VIEWS = ["ladders", "late", "map", "settings"];
+const VIEWS = ["ladders", "late", "swings", "map", "settings"];
 
 function NameInput({ initial, placeholder, onDone, onCancel, label }) {
   const [val, setVal] = useState(initial || "");
@@ -300,6 +301,10 @@ export default function Home() {
         )}
         {view === "late" && (
           <LateView vehicles={feed.vehicles} ghosts={feed.ghosts} onGhost={openGhost} now={now} routes={routes} routeData={routeData} selectedRoutes={selected} selectedId={selVehicleId} onSelect={openVehicle} />
+        )}
+        {view === "swings" && (
+          <SwingsView vehicles={feed.vehicles} now={now} routes={routes} selectedRoutes={selected} onSelect={openVehicle}
+            onBlock={(block) => { setPanelOpen(false); setSchedTarget({ kind: "block", block, date: null }); }} />
         )}
         {view === "settings" && <SettingsPage settings={settings} onChange={setSettings} />}
         {view === "map" && (

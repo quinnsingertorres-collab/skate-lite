@@ -132,3 +132,9 @@ export const GearIcon = (p) => (
     <path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.9 1.9M17.5 17.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.9-1.9M17.5 6.5l1.9-1.9" />
   </I>
 );
+export const SwingIcon = (p) => (
+  <I {...p}>
+    <path d="M4 8h13l-3-3" />
+    <path d="M20 16H7l3 3" />
+  </I>
+);

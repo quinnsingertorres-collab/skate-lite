@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ChevronsLeft, ChevronsRight, ClockIcon, GearIcon, LadderIcon, MapIcon, MapSearchIcon, MenuIcon, RefreshIcon } from "@/components/Icons";
+import { ChevronsLeft, ChevronsRight, ClockIcon, GearIcon, LadderIcon, MapIcon, MapSearchIcon, MenuIcon, RefreshIcon, SwingIcon } from "@/components/Icons";
 
 const VIEWS = [
   { id: "ladders", label: "Route Ladders", short: "Routes", Icon: LadderIcon, MobileIcon: LadderIcon },
   { id: "late", label: "Late View", short: "Late", Icon: ClockIcon, MobileIcon: ClockIcon, sub: true },
+  { id: "swings", label: "Swings View", short: "Swings", Icon: SwingIcon, MobileIcon: SwingIcon, sub: true },
   { id: "map", label: "Search Map", short: "Search", Icon: MapIcon, MobileIcon: MapSearchIcon },
 ];
 
