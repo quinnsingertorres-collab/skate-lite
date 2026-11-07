@@ -1,4 +1,5 @@
 import { onTime } from "@/lib/ladder";
+import { displayLabel } from "@/lib/labels";
 
 // Rounded triangle bus icon with a pill label, centred on (0,0).
 // size: "medium" (ladders) | "large" (panel header)
@@ -10,6 +11,7 @@ const SIZES = {
 
 export function statusClass(v) {
   if (!v) return "";
+  if (v.ghost) return "ghost";
   if (v.revenue === false) return "nonrevenue";
   return onTime(v.adherence) || "";
 }
@@ -72,7 +74,7 @@ export function VehicleBadge({ vehicle, up = true, size = "small" }) {
   const box = size === "large" ? { w: 110, h: 82, cy: 24 } : { w: 40, h: 40, cy: 14 };
   return (
     <svg width={box.w} height={box.h} viewBox={`${-box.w / 2} ${-box.cy} ${box.w} ${box.h}`} aria-hidden="true">
-      <VehicleGlyph up={up} label={vehicle.label} variant={vehicle.variant && vehicle.variant !== "_" ? vehicle.variant : ""} size={size} className={statusClass(vehicle)} />
+      <VehicleGlyph up={up} label={displayLabel(vehicle)} variant={vehicle.variant && vehicle.variant !== "_" ? vehicle.variant : ""} size={size} className={statusClass(vehicle)} />
     </svg>
   );
 }

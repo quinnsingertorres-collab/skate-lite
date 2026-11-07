@@ -4,6 +4,8 @@ import Ladder from "@/components/Ladder";
 import VehiclePanel from "@/components/VehiclePanel";
 import SchedulePanel from "@/components/SchedulePanel";
 import RosterPanel from "@/components/RosterPanel";
+import SettingsPage from "@/components/SettingsPage";
+import { setLabelMode } from "@/lib/labels";
 import RoutePicker from "@/components/RoutePicker";
 import SearchMap from "@/components/SearchMap";
 import LateView from "@/components/LateView";
@@ -14,7 +16,7 @@ import { useLadderTabs } from "@/lib/useLadderTabs";
 const NAV_KEY = "skate-lite:nav-collapsed";
 const PICKER_KEY = "skate-lite:picker-open"; // remembered on this device
 const POLL_MS = 10000;
-const VIEWS = ["ladders", "late", "map"];
+const VIEWS = ["ladders", "late", "map", "settings"];
 
 function NameInput({ initial, placeholder, onDone, onCancel, label }) {
   const [val, setVal] = useState(initial || "");
@@ -99,7 +101,11 @@ function TabBar({ tabs, current, isDirty, onSelect, onClose, onAdd, onSave, onRe
 export default function Home() {
   const [index, setIndex] = useState(null);
   const [routeData, setRouteData] = useState({});
-  const [feed, setFeed] = useState({ vehicles: [], fetched: null, error: null, sources: {} });
+  const [feed, setFeed] = useState({ vehicles: [], ghosts: [], fetched: null, error: null, sources: {} });
+  // Settings (Skate-style): vehicle labels and adherence colors. From the account; applied right away.
+  const [settings, setSettings] = useState({ ladderLabel: "run", earlyColor: "blue" });
+  setLabelMode(settings.ladderLabel);
+  useEffect(() => { document.documentElement.dataset.adh = settings.earlyColor === "red" ? "early-red" : "early-blue"; }, [settings.earlyColor]);
   const [selVehicleId, setSelVehicleId] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [schedTarget, setSchedTarget] = useState(null); // block/run opened from the schedule
@@ -114,7 +120,7 @@ export default function Home() {
     const loadMe = () =>
       fetch("/api/auth/me", { cache: "no-store" })
         .then((r) => (r.status === 401 ? (window.location.href = "/signin", null) : r.json()))
-        .then((d) => d && setMe(d))
+        .then((d) => { if (d) { setMe(d); if (d.settings) setSettings(d.settings); } })
         .catch(() => {});
     loadMe();
     const i = setInterval(loadMe, 5 * 60 * 1000);
@@ -173,7 +179,7 @@ export default function Home() {
       const r = await fetch("/api/vehicles", { cache: "no-store" });
       if (r.status === 401) { window.location.href = "/signin"; return; }
       const d = await r.json();
-      setFeed({ vehicles: d.vehicles || [], fetched: d.fetched, error: d.error || null, sources: d.sources || {} });
+      setFeed({ vehicles: d.vehicles || [], ghosts: d.ghosts || [], fetched: d.fetched, error: d.error || null, sources: d.sources || {} });
     } catch (e) {
       setFeed((f) => ({ ...f, error: String(e) }));
     }
@@ -191,11 +197,17 @@ export default function Home() {
     for (const v of feed.vehicles) if (v.route) (m[v.route] ||= []).push(v);
     return m;
   }, [feed.vehicles]);
+  const ghostsByRoute = useMemo(() => {
+    const m = {};
+    for (const g of feed.ghosts) (m[g.route] ||= []).push(g);
+    return m;
+  }, [feed.ghosts]);
+  const openGhost = useCallback((g) => { setPanelOpen(false); setSchedTarget({ kind: "block", block: g.block, date: null }); }, []);
 
   // Late View needs stop names for whichever routes have late buses
   useEffect(() => {
     if (view !== "late") return;
-    new Set(feed.vehicles.filter((v) => v.adherence > 360 && v.route).map((v) => v.route)).forEach(loadRoute);
+    new Set(feed.vehicles.filter((v) => v.adherence > 900 && v.route).map((v) => v.route)).forEach(loadRoute);
   }, [view, feed.vehicles, loadRoute]);
 
   const selVehicle = feed.vehicles.find((v) => v.id === selVehicleId) || null;
@@ -223,10 +235,15 @@ export default function Home() {
 
   return (
     <div className="app">
-      <TopNav title={view === "ladders" ? (t.current?.title && t.current.title !== "Untitled" ? t.current.title : "Route Ladders") : VIEW_LABELS[view]} liveText={liveText} stale={stale} onRefresh={poll} me={me} onMe={setMe} onOpenRoster={() => { setPanelOpen(false); setSchedTarget(null); setRosterOpen(true); }} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
+      <TopNav title={view === "ladders" ? (t.current?.title && t.current.title !== "Untitled" ? t.current.title : "Route Ladders") : VIEW_LABELS[view]} liveText={liveText} stale={stale} onRefresh={poll} me={me} onMe={setMe} onOpenRoster={() => { setPanelOpen(false); setSchedTarget(null); setRosterOpen(true); }} onOpenSettings={() => setView("settings")} swiftly={{ status: feed.sources.swiftly, detail: feed.sources.swiftlyDetail }} />
       <LeftNav view={view} onView={setView} collapsed={navCollapsed} onCollapse={collapseNav} />
 
       <main className="content">
+        {stale && feed.fetched && (
+          <div className="data-banner" role="status">
+            {feed.error ? "Live bus data isn't coming through right now. Positions may be out of date." : "Live bus data is delayed. Positions may be out of date."}
+          </div>
+        )}
         {view === "ladders" && (
           <div className={`ladder-page${pickerOpen ? " picker-visible" : ""}`}>
             <RoutePicker
@@ -267,6 +284,8 @@ export default function Home() {
                       key={id}
                       route={routeData[id]}
                       vehicles={byRoute[id] || []}
+                      ghosts={ghostsByRoute[id] || []}
+                      onGhost={openGhost}
                       selectedId={selVehicleId}
                       onSelect={openVehicle}
                       onRemove={() => t.toggleRoute(id)}
@@ -280,8 +299,9 @@ export default function Home() {
           </div>
         )}
         {view === "late" && (
-          <LateView vehicles={feed.vehicles} routes={routes} routeData={routeData} selectedRoutes={selected} selectedId={selVehicleId} onSelect={openVehicle} />
+          <LateView vehicles={feed.vehicles} ghosts={feed.ghosts} onGhost={openGhost} now={now} routes={routes} routeData={routeData} selectedRoutes={selected} selectedId={selVehicleId} onSelect={openVehicle} />
         )}
+        {view === "settings" && <SettingsPage settings={settings} onChange={setSettings} />}
         {view === "map" && (
           <SearchMap vehicles={feed.vehicles} routes={routes} routeData={routeData} selectedId={selVehicleId} onSelect={openVehicle}
             onOpenSchedule={(t) => { setPanelOpen(false); setSchedTarget(t); }} />

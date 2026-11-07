@@ -792,3 +792,48 @@ dd .op-edit { margin-left: 8px; }
 .sched-day button.is-on { background: var(--eggplant-500); border-color: var(--eggplant-500); color: var(--white); }
 .sched-day button:disabled { opacity: .4; }
 .sched-day input[type=date] { height: 30px; padding: 0 6px; border: 1px solid var(--gray-300); border-radius: 6px; font: inherit; font-size: 13px; background: var(--white); color: var(--font-dark); }
+/* Settings: early buses red (Skate's default) instead of blue */
+:root[data-adh="early-red"] { --early: #e45d32; --late: #46a5e7; }
+/* Ghost buses: scheduled with no bus on them */
+.vg.ghost { --c: var(--gray-500); }
+.vg.ghost .vg-tri { fill: var(--white); stroke-dasharray: 3 2.5; stroke-width: 2; }
+.vg.ghost .vg-variant { fill: var(--gray-600); }
+.vg.ghost .vg-pill { fill: transparent; stroke: var(--gray-400); stroke-dasharray: 2 2; }
+/* Late View: missing logons + hiding rows */
+.late-panel { margin-bottom: 22px; }
+.late-panel h2 { font-size: 16px; margin: 0 0 8px; display: flex; align-items: baseline; gap: 8px; }
+.late-panel h2 span { font-size: 13px; color: var(--gray-500); font-weight: 600; }
+.late-panel .late-empty { margin: 6px 0 0; }
+.late-check { width: 34px; padding-right: 0 !important; }
+.late-check input { width: 18px; height: 18px; }
+.late-table tbody tr.is-hidden { opacity: .55; }
+.late-showhidden { font-size: 13px; color: var(--gray-700); display: inline-flex; gap: 6px; align-items: center; }
+.late-pop { position: sticky; bottom: 12px; margin: 0 auto; width: max-content; max-width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--tip-bg); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); font-size: 14px; }
+/* Data delayed banner */
+.data-banner { position: absolute; top: 0; left: 0; right: 0; z-index: 900; padding: 6px 12px; text-align: center; font-size: 13px; font-weight: 600; background: #fff1c2; color: #6b4e00; border-bottom: 1px solid #e8cf7a; }
+[data-theme="dark"] .data-banner { background: #3b3010; color: #ffd76a; border-color: #5c4a14; }
+/* Settings page */
+.set-page { height: 100%; overflow: auto; padding: 20px 24px 40px; background: var(--white); max-width: 760px; }
+.set-page h1 { font-size: 22px; margin: 0 0 16px; }
+.set-page h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .4px; color: var(--gray-600); margin: 0 0 10px; }
+.set-row { padding: 14px 0; border-top: 1px solid var(--gray-200); }
+.set-label { font-weight: 600; margin-bottom: 8px; }
+.set-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.set-choice { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 8px; cursor: pointer; font-size: 14px; }
+.set-choice.is-on { border-color: var(--eggplant-500); background: var(--eggplant-50); }
+.set-choice input { position: absolute; opacity: 0; pointer-events: none; }
+.set-radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--gray-500); flex: 0 0 auto; }
+.set-choice.is-on .set-radio { border-color: var(--eggplant-500); box-shadow: inset 0 0 0 3px var(--white); background: var(--eggplant-500); }
+.set-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin: 0 4px -1px 2px; }
+.set-help { font-size: 13px; color: var(--gray-600); margin: 8px 0 0; }
+.set-msg { font-size: 13px; color: var(--gray-600); min-height: 1.4em; }
+/* Recent searches */
+.recent { margin-top: 10px; }
+.recent-head { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--gray-500); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.recent-head button { font-size: 12px; color: var(--eggplant-500); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.recent-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.recent-list button { padding: 4px 10px; border: 1px solid var(--gray-300); border-radius: 14px; font-size: 13px; }
+/* Street View button (vehicle panel) */
+.pp-loc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pp-loc-actions .pp-directions { margin-top: 0; }
+.pp-streetview { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--gray-400); color: var(--font-dark); font-size: 15px; font-weight: 500; text-decoration: none; }

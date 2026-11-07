@@ -12,6 +12,16 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
   const markers = useRef(new Map());
   const shapeLayer = useRef(null);
   const [query, setQuery] = useState("");
+  // Recent searches (this device), like Skate
+  const RECENT_KEY = "skate-lite:recent-searches";
+  const [recent, setRecent] = useState([]);
+  useEffect(() => { try { setRecent(JSON.parse(localStorage.getItem(RECENT_KEY) || "[]")); } catch {} }, []);
+  const remember = (term) => {
+    const t = String(term || "").trim();
+    if (!t) return;
+    const next = [t, ...recent.filter((x) => x.toLowerCase() !== t.toLowerCase())].slice(0, 8);
+    setRecent(next); try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {}
+  };
   const [panelOpen, setPanelOpen] = useState(true);
   const [tick, setTick] = useState(0);
   // "Zoom to my location"
@@ -181,7 +191,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
                 const adh = adherenceLabel(v.adherence);
                 return (
                   <li key={v.id}>
-                    <button className={`result-card${v.id === selectedId ? " is-selected" : ""}`} onClick={() => onSelect(v)}>
+                    <button className={`result-card${v.id === selectedId ? " is-selected" : ""}`} onClick={() => { remember(query); onSelect(v); }}>
                       <VehicleBadge vehicle={v} />
                       <span className="result-main">
                         <span className="result-title">
@@ -206,7 +216,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
                 <ul>
                   {sched.runs.map((r) => (
                     <li key={`run-${r.id}`}>
-                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "run", id: r.id, date: day || null })}>
+                      <button className="result-card result-card--sched" onClick={() => { remember(query); onOpenSchedule?.({ kind: "run", id: r.id, date: day || null }); }}>
                         <span className="sched-tag">Run</span>
                         <span className="result-main">
                           <span className="result-title"><b>Run {r.run}</b></span>
@@ -217,7 +227,7 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
                   ))}
                   {sched.blocks.map((b) => (
                     <li key={`blk-${b.block}`}>
-                      <button className="result-card result-card--sched" onClick={() => onOpenSchedule?.({ kind: "block", block: b.block, date: day || null })}>
+                      <button className="result-card result-card--sched" onClick={() => { remember(query); onOpenSchedule?.({ kind: "block", block: b.block, date: day || null }); }}>
                         <span className="sched-tag">Block</span>
                         <span className="result-main">
                           <span className="result-title">{b.routes.slice(0, 3).map((r) => <span key={r} className="route-pill">{routeName(r)}</span>)}<b>{b.block}</b></span>
@@ -229,6 +239,12 @@ export default function SearchMap({ vehicles, routes, routeData, selectedId, onS
                 </ul>
               </>
             )}
+          </div>
+        )}
+        {!q && recent.length > 0 && (
+          <div className="recent">
+            <div className="recent-head">Recent searches <button onClick={() => { setRecent([]); try { localStorage.removeItem(RECENT_KEY); } catch {} }}>Clear</button></div>
+            <div className="recent-list">{recent.map((r) => <button key={r} onClick={() => setQuery(r)}>{r}</button>)}</div>
           </div>
         )}
         {!q && <p className="search-tip">Search by bus number (e.g. 1920), block (e.g. C01-31), run, operator ID or route. Blocks and runs come up from the schedule even with no bus on them.</p>}

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { atTripStart, ladderPosition, variantLabel } from "@/lib/ladder";
+import { displayLabel } from "@/lib/labels";
 import { VehicleGlyph, statusClass } from "@/components/VehicleGlyph";
 import { CloseIcon, KebabIcon, ReverseIcon, RidersIcon } from "@/components/Icons";
 
@@ -58,7 +59,7 @@ function Menu({ reversed, showRiders, onReverse, onRiders, onRemove }) {
   );
 }
 
-export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove }) {
+export default function Ladder({ route, vehicles, ghosts = [], selectedId, onSelect, onRemove, onGhost }) {
   const [reversed, setReversed] = useState(false);
   const [showRiders, setShowRiders] = useState(false);
   const n = route.timepoints.length;
@@ -93,6 +94,14 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
     if (atTripStart(route, v)) { (up ? endBottom : endTop).push(v); continue; }
     const sp = schedPos(v.sched);
     (up ? ups : downs).push({ v, y: yFor(pos), up, schedY: sp == null ? null : yFor(sp) });
+  }
+  // Ghosts: blocks scheduled to be out with no bus on them, drawn at their scheduled position
+  for (const g of ghosts) {
+    const up = (g.dir === 0) !== reversed;
+    if (g.status === "laying_over") { (up ? endBottom : endTop).push(g); continue; }
+    const sp = schedPos(g.sched);
+    if (sp == null) continue;
+    (up ? ups : downs).push({ v: g, y: yFor(sp), up, schedY: null });
   }
   ups.sort((a, b) => b.y - a.y);
   downs.sort((a, b) => a.y - b.y);
@@ -162,12 +171,12 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
               key={v.id}
               className={`rl-vehicle rl-vehicle--end${v.id === selectedId ? " rl-vehicle--selected" : ""}`}
               transform={`translate(${x},${y})`}
-              onClick={() => onSelect(v)}
+              onClick={() => (v.ghost ? onGhost?.(v) : onSelect(v))}
               role="button"
-              aria-label={`Bus ${v.label}, at the start of its trip`}
+              aria-label={v.ghost ? `No bus on block ${v.block} (laying over)` : `Bus ${v.label}, at the start of its trip`}
             >
               <rect className="hit" x={-17} y={-14} width={34} height={44} />
-              <VehicleGlyph side={side} label={showRiders ? riderLabel(v) : v.label} variant={variantLabel(v)} className={statusClass(v)} />
+              <VehicleGlyph side={side} label={showRiders && !v.ghost ? riderLabel(v) : displayLabel(v)} variant={variantLabel(v)} className={statusClass(v)} />
             </g>
           ))}
           {placed.map(({ v, x, y, up }) => (
@@ -175,12 +184,12 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
               key={v.id}
               className={`rl-vehicle${v.id === selectedId ? " rl-vehicle--selected" : ""}`}
               transform={`translate(${x},${y})`}
-              onClick={() => onSelect(v)}
+              onClick={() => (v.ghost ? onGhost?.(v) : onSelect(v))}
               role="button"
-              aria-label={`Bus ${v.label}`}
+              aria-label={v.ghost ? `No bus on block ${v.block}` : `Bus ${v.label}`}
             >
               <rect className="hit" x={-18} y={up ? -16 : -30} width={36} height={46} />
-              <VehicleGlyph up={up} label={showRiders ? riderLabel(v) : v.label} variant={variantLabel(v)} className={statusClass(v)} />
+              <VehicleGlyph up={up} label={showRiders && !v.ghost ? riderLabel(v) : displayLabel(v)} variant={variantLabel(v)} className={statusClass(v)} />
             </g>
           ))}
         </svg>
@@ -196,7 +205,7 @@ export default function Ladder({ route, vehicles, selectedId, onSelect, onRemove
                 )}
               </g>
             </svg>
-            {showRiders ? riderLabel(v) : v.label}
+            {showRiders ? riderLabel(v) : displayLabel(v)}
           </button>
         ))}
       </div>

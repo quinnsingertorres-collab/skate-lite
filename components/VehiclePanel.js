@@ -270,10 +270,16 @@ export default function VehiclePanel({ vehicle, route, now, onClose, onOpenMap, 
             <div className="pp-label">Current location</div>
             <div className="pp-text">{near ? (near.d < 40 ? `At ${near.name}` : `Near ${near.name}`) : hasPos ? `${vehicle.lat.toFixed(4)}, ${vehicle.lon.toFixed(4)}` : "Not available"}</div>
             {hasPos && (
-            <a className="pp-directions" href={directionsUrl(vehicle)} target="_blank" rel="noreferrer">
-              <DirectionsIcon size={16} /> Get directions to bus
-            </a>
-            )}
+            <div className="pp-loc-actions">
+              <a className="pp-directions" href={directionsUrl(vehicle)} target="_blank" rel="noreferrer">
+                <DirectionsIcon size={16} /> Get directions to bus
+              </a>
+              <a className="pp-streetview" target="_blank" rel="noreferrer"
+                href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${vehicle.lat},${vehicle.lon}${vehicle.bearing != null ? `&heading=${Math.round(vehicle.bearing)}` : ""}`}>
+                Street View
+              </a>
+            </div>
+          )}
           </div>
 
           <div className="pp-section">

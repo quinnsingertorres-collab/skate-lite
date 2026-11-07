@@ -126,3 +126,9 @@ export const LocateIcon = (p) => (
     <path d="M20.5 3.5L3.5 10.5l7 3 3 7z" />
   </I>
 );
+export const GearIcon = (p) => (
+  <I {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.9 1.9M17.5 17.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.9-1.9M17.5 6.5l1.9-1.9" />
+  </I>
+);

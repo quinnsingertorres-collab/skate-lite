@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ChevronsLeft, ChevronsRight, ClockIcon, LadderIcon, MapIcon, MapSearchIcon, MenuIcon, RefreshIcon } from "@/components/Icons";
+import { ChevronsLeft, ChevronsRight, ClockIcon, GearIcon, LadderIcon, MapIcon, MapSearchIcon, MenuIcon, RefreshIcon } from "@/components/Icons";
 
 const VIEWS = [
   { id: "ladders", label: "Route Ladders", short: "Routes", Icon: LadderIcon, MobileIcon: LadderIcon },
@@ -32,7 +32,7 @@ function SwiftlyStatus({ swiftly }) {
 }
 
 // Account menu (hamburger on phones, avatar on desktop): account, live status, refresh, sign out
-function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefresh, onOpenRoster }) {
+function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefresh, onOpenRoster, onOpenSettings }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -60,6 +60,7 @@ function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefre
           <span className={`live${stale ? " is-stale" : ""}`}><i />{liveText}</span>
           <SwiftlyStatus swiftly={swiftly} />
         </div>
+        {onOpenSettings && <button className="mm-item" onClick={() => { onClose(); onOpenSettings(); }}><GearIcon size={18} /> Settings</button>}
         {me?.roster && <button className="mm-item" onClick={() => { onClose(); onOpenRoster?.(); }}>Operators &amp; schedules</button>}
         <button className="mm-item" onClick={() => { onRefresh(); onClose(); }}><RefreshIcon size={18} /> Refresh data</button>
         <button className="mm-item mm-item--danger" onClick={signOut}>Sign out</button>
@@ -68,7 +69,7 @@ function MobileMenu({ open, onClose, me, onMe, liveText, stale, swiftly, onRefre
   );
 }
 
-export function TopNav({ liveText, stale, onRefresh, swiftly, me, onMe, title, onOpenRoster }) {
+export function TopNav({ liveText, stale, onRefresh, swiftly, me, onMe, title, onOpenRoster, onOpenSettings }) {
   const [menu, setMenu] = useState(false);
   return (
     <header className="top-nav">
@@ -99,7 +100,7 @@ export function TopNav({ liveText, stale, onRefresh, swiftly, me, onMe, title, o
       <button className={`top-mob-btn top-mob${stale ? " is-stale" : ""}`} onClick={onRefresh} aria-label="Refresh data">
         <RefreshIcon size={22} />
       </button>
-      <MobileMenu open={menu} onClose={() => setMenu(false)} me={me} onMe={onMe} onOpenRoster={onOpenRoster} liveText={liveText} stale={stale} swiftly={swiftly} onRefresh={onRefresh} />
+      <MobileMenu open={menu} onClose={() => setMenu(false)} me={me} onMe={onMe} onOpenRoster={onOpenRoster} onOpenSettings={onOpenSettings} liveText={liveText} stale={stale} swiftly={swiftly} onRefresh={onRefresh} />
     </header>
   );
 }
@@ -122,6 +123,10 @@ export function LeftNav({ view, onView, collapsed, onCollapse }) {
         ))}
       </div>
       <div className="left-nav-links">
+        <button className={`left-nav-link left-nav-link--sub${view === "settings" ? " is-active" : ""}`} onClick={() => onView("settings")} title="Settings" aria-current={view === "settings" ? "page" : undefined}>
+          <GearIcon size={16} />
+          <span>Settings</span>
+        </button>
         <button className="left-nav-link" onClick={onCollapse} title={collapsed ? "Expand" : "Collapse"}>
           {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
           <span>Collapse</span>
@@ -144,4 +149,4 @@ export function BottomNav({ view, onView }) {
   );
 }
 
-export const VIEW_LABELS = Object.fromEntries(VIEWS.map((v) => [v.id, v.label]));
+export const VIEW_LABELS = { ...Object.fromEntries(VIEWS.map((v) => [v.id, v.label])), settings: "Settings" };

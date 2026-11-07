@@ -5,7 +5,9 @@
 const MBTA_FEED = process.env.VEHICLES_URL || "https://cdn.mbta.com/realtime/VehiclePositions_enhanced.json";
 import { scheduleInfo } from "@/lib/adherence";
 import { lookupTrips } from "@/lib/mbtaTrips";
-import { runDefs, runFor, todaysOperators, tripStartSecs } from "@/lib/runs";
+import { pieces, runDefs, runFor, todaysOperators, tripStartSecs } from "@/lib/runs";
+import { ghostsNow, isLastTripOfBlock } from "@/lib/ghosts";
+import { serviceDateForTrip } from "@/lib/adherence";
 import { canUseRoster, readRoster, todaysAssignments } from "@/lib/roster";
 import { getSession } from "@/lib/authServer";
 import { liveJson } from "@/lib/liveFetch";
@@ -146,6 +148,16 @@ export async function GET(req) {
   const rosterName = (id) => rosterOps[id]?.name || "";
   for (const v of vehicles) {
     const d = runFor(defs, v.block, tripStartSecs(v.trip), v.trip);
+    // End of this trip, for Skate-style labels: Pull-B (pulls back to the garage after) or
+    // Sw-Off (the run ends here and another operator takes the bus)
+    if (v.block && v.trip) {
+      const date = serviceDateForTrip(v.trip, nowSec);
+      if (isLastTripOfBlock(v.block, v.trip, date)) v.endOfTrip = "pull_back";
+      else if (d) {
+        const piece = pieces(d).find((p) => p.tripIds?.includes(v.trip));
+        if (piece && piece.tripIds[piece.tripIds.length - 1] === v.trip) v.endOfTrip = "swing_off";
+      }
+    }
     if (d) {
       if (!v.run) { v.run = d.run; v.runSource = "schedule"; }
       v.runDef = { id: d.id, run: d.run };
@@ -157,6 +169,14 @@ export async function GET(req) {
     const nameFor = v.operatorInfo && showNames ? (assigned[d?.id]?.operatorId === v.operatorInfo.operatorId ? assigned[d.id].name : rosterName(v.operatorInfo.operatorId)) : "";
     if (nameFor) v.operatorInfo.name = nameFor;
   }
+
+  // Ghosts: blocks scheduled to be running with no live bus on them (only when the feed is healthy)
+  const liveBlocks = new Set(vehicles.map((v) => v.block).filter(Boolean));
+  const ghosts = mbta.status === "fulfilled" && vehicles.length > 20 ? ghostsNow(liveBlocks, nowSec).map((g) => {
+    const d = runFor(defs, g.block, tripStartSecs(g.trip), g.trip);
+    const a = d ? assigned[d.id] : null;
+    return { ...g, ...(d ? { run: d.run, runDef: { id: d.id, run: d.run } } : {}), ...(a ? { operatorInfo: { operatorId: a.operatorId, source: "schedule", ...(showNames ? { name: a.name } : {}) } } : {}) };
+  }) : [];
 
   const error = mbta.status === "rejected" && !sw.vehicles.length ? String(mbta.reason) : null;
   return Response.json(
@@ -170,6 +190,7 @@ export async function GET(req) {
       },
       error,
       vehicles,
+      ghosts,
     },
     {
       status: error ? 502 : 200,
