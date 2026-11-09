@@ -19,7 +19,6 @@ function summary(items) {
 }
 
 export function RunSchedule({ data, vehicle, upFor, children }) {
-  const [showPast, setShowPast] = useState(false);
   const run = data.run;
   const items = run.items;
   const sum = summary(items);
@@ -30,10 +29,9 @@ export function RunSchedule({ data, vehicle, upFor, children }) {
 
   const rows = [];
   items.forEach((x, i) => {
-    if (i < curIdx && !showPast) return;
     const past = i < curIdx;
     const prev = items[i - 1];
-    if (x.type === "trip" && prev?.type === "trip" && (showPast || i > curIdx)) {
+    if (x.type === "trip" && prev?.type === "trip" && true) {
       const gap = x.start - prev.end;
       if (gap > 0) rows.push({ key: `lay-${x.trip}`, kind: "none", title: "Layover", time: hm(gap), cls: `bs-row--layover${past || i === curIdx ? " is-past" : ""}` });
     }
@@ -53,6 +51,7 @@ export function RunSchedule({ data, vehicle, upFor, children }) {
     }
   });
 
+  // Past trips and activities always stay listed (greyed out)
   return (
     <div className="bs">
       <div className="bs-id"><span>Run</span><b>{run.run}</b></div>
@@ -65,12 +64,6 @@ export function RunSchedule({ data, vehicle, upFor, children }) {
         </dl>
       )}
       <div className="bs-cols"><span>Departure point</span><span>Scheduled departure</span></div>
-      {curIdx > 0 && (
-        <button className="bs-past" onClick={() => setShowPast((s) => !s)}>
-          <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true"><path d="M6 1L11 6H1zM6 15L1 10h10z" /></svg>
-          {showPast ? "Hide past trips" : "Show past trips"}
-        </button>
-      )}
       <ol className="bs-list">
         {rows.map((r) => (
           <li key={r.key} className={`bs-row ${r.cls}`}>
