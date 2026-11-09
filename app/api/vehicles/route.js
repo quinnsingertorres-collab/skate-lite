@@ -60,6 +60,9 @@ export async function GET(req) {
   const sw = swiftly.status === "fulfilled" ? swiftly.value : { status: "error", detail: String(swiftly.reason), vehicles: [] };
 
   const byId = new Map(base.map((v) => [v.id, v]));
+  // Swiftly's vehicle IDs may or may not carry the MBTA feed's "y" prefix, so also match on the bus number
+  const byLabel = new Map(base.map((v) => [String(v.label), v]));
+  const findBus = (id) => byId.get(id) || byId.get(`y${id}`) || byLabel.get(String(id).replace(/^y/, ""));
   for (const s of sw.vehicles) {
     if (!s?.id) continue;
     const loc = s.loc || {};
@@ -70,7 +73,7 @@ export async function GET(req) {
       block: s.blockId || null,
       nextStopName: s.nextStopName || null,
     };
-    const v = byId.get(s.id);
+    const v = findBus(s.id);
     if (v) {
       Object.assign(v, extra);
       v.sources.push("swiftly");
@@ -79,7 +82,7 @@ export async function GET(req) {
         v.lon = loc.lon ?? v.lon;
         v.ts = loc.time;
       }
-    } else if (loc.lat != null && s.routeId && /^\d/.test(s.routeId)) {
+    } else if (loc.lat != null && !byLabel.has(String(s.id).replace(/^y/, "")) && s.routeId && /^\d/.test(s.routeId)) {
       byId.set(s.id, {
         id: s.id,
         label: String(s.id).replace(/^y/, ""),
@@ -118,7 +121,8 @@ export async function GET(req) {
         rest.variant = m ? m[1] : "_";
       }
       if (!rest.headsign && info.headsign) rest.headsign = info.headsign;
-      if (!rest.block && info.block) rest.block = info.block;
+      // The public schedule's block ID wins: runs, ghosts and Pull-B all key on it
+      if (info.block) rest.block = info.block;
     }
     return rest;
   });
