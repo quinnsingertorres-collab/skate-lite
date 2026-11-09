@@ -131,7 +131,7 @@ export function RailIcon({ kind, up, className = "" }) {
  * Block tab: the whole block as one continuous schedule (Skate's run/block layout):
  * pull out → each trip with its timepoints → layovers between trips → pull in.
  */
-export const tripName = (t) => `${t.route || ""}_${t.variant && t.variant !== "_" ? t.variant : ""} ${t.headsign || ""}`.trim();
+export const tripName = (t) => `${t.route || ""}_${t.variant && /^[A-Z]$/i.test(t.variant) ? t.variant.toUpperCase() : ""} ${t.headsign || ""}`.trim();
 
 // Runs that use this block (built in the Run tab)
 function BlockRuns({ data }) {

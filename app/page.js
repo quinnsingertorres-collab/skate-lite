@@ -104,7 +104,7 @@ export default function Home() {
   const [routeData, setRouteData] = useState({});
   const [feed, setFeed] = useState({ vehicles: [], ghosts: [], fetched: null, error: null, sources: {} });
   // Settings (Skate-style): vehicle labels and adherence colors. From the account; applied right away.
-  const [settings, setSettings] = useState({ ladderLabel: "run", earlyColor: "blue" });
+  const [settings, setSettings] = useState({ ladderLabel: "vehicle", earlyColor: "blue" });
   setLabelMode(settings.ladderLabel);
   useEffect(() => { document.documentElement.dataset.adh = settings.earlyColor === "red" ? "early-red" : "early-blue"; }, [settings.earlyColor]);
   const [selVehicleId, setSelVehicleId] = useState(null);

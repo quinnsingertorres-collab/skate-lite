@@ -36,8 +36,8 @@ export default function SettingsPage({ settings, onChange }) {
         <div className="set-row">
           <div className="set-label">Vehicle labels on ladders and maps</div>
           <Choice name="ladderLabel" value={settings.ladderLabel} onChange={(v) => set({ ladderLabel: v })}
-            options={[{ value: "run", label: "Run number" }, { value: "vehicle", label: "Vehicle number" }]} />
-          <p className="set-help">Run numbers show when a run has been built for the bus&apos;s trips; otherwise the vehicle number shows. &ldquo;Pull-B&rdquo; marks a bus&apos;s last trip before the garage, and &ldquo;Sw-Off&rdquo; the last trip of a run before another operator takes over.</p>
+            options={[{ value: "vehicle", label: "Vehicle number" }, { value: "run", label: "Run number" }]} />
+          <p className="set-help">Vehicle number shows each bus&apos;s own number. With Run number, run numbers show when a run has been built for the bus&apos;s trips; otherwise the vehicle number shows. On a bus with a run, &ldquo;Pull-B&rdquo; marks its last trip before the garage, and &ldquo;Sw-Off&rdquo; the last trip of a run before another operator takes over.</p>
         </div>
         <div className="set-row">
           <div className="set-label">Adherence colors</div>
